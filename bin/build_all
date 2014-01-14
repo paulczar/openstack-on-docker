@@ -1,0 +1,9 @@
+#!/bin/sh
+
+cd common && docker build -t openstack-common . && cd ..
+
+cd mysql && docker build -t openstack-mysql . && cd ..
+
+cd keystone && docker build -t openstack-keystone . && cd ..
+
+cd glance && docker build -t openstack-glance . && cd ..

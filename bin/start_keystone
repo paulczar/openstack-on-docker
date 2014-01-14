@@ -1,0 +1,5 @@
+#!/bin/sh
+
+KEYSTONE_ID=$(docker run -d -name openstack-keystone -link openstack-mysql:db \
+    -p 127.0.0.1:5000:5000 -p 127.0.0.1:35357:35357 -v $PWD/etc/openstack:/opt/openstack/etc:ro \
+    openstack/keystone)
