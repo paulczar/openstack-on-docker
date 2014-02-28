@@ -4,7 +4,7 @@
 # Date: 08/11/2013
 
 
-FROM stackbrew/ubuntu:precise
+FROM racker/precise-with-updates
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
 RUN apt-get -yqq update
