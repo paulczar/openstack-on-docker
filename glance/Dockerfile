@@ -4,7 +4,7 @@
 # Date: 08/11/2013
 
 
-FROM openstack/common
+FROM racker/precise-with-updates
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
 RUN git clone --depth 1 -b stable/havana https://github.com/openstack/glance.git /opt/openstack/glance
