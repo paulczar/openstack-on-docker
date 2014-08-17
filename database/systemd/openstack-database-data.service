@@ -1,0 +1,14 @@
+[Unit]
+Description=openstack-database-data
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/sh -c "docker inspect openstack-database-data >/dev/null 2>&1 || docker run --name openstack-database-data -v /var/lib/mysql paulczar/openstack-base true"
+
+[Install]
+WantedBy=multi-user.target
+
+#[X-Fleet]
+#X-ConditionMachineBootID=CHANGEME
+

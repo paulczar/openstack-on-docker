@@ -1,0 +1,12 @@
+#!/bin/bash
+#
+# This script is designed to be run inside the container
+#
+
+mysql -e 'CREATE USER {{ .openstack_database_adminUser }};' || echo .
+mysql -e 'GRANT ALL PRIVILEGES ON *.* TO "{{ .openstack_database_adminUser }}"@"%";'
+mysql -e 'GRANT SUPER ON *.* TO "{{ .openstack_database_adminUser }}"@"%"  WITH GRANT OPTION;'
+mysql -e 'SET PASSWORD FOR {{ .openstack_database_adminUser }}@"%"=PASSWORD("{{ .openstack_database_adminPass }}");'
+mysql -e 'FLUSH PRIVILEGES;'
+
+exit 0

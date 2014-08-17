@@ -1,10 +1,7 @@
 # This file creates a container that runs RabbitMQ for Openstack
-#
-# Author: Paul Czarkowski
-# Date: 08/04/2013
+# Date: 08/16/2014
 
-
-FROM racker/precise-with-updates
+FROM paulczar/openstack-base
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
 RUN apt-get -yqq install rabbitmq-server

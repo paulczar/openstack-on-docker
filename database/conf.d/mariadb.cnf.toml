@@ -1,0 +1,11 @@
+[template]
+src   = "mariadb.cnf"
+dest  = "/etc/mysql/conf.d/mariadb.cnf"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+  "/openstack/database",
+]
+check_cmd = "/usr/sbin/mysqld --help > /dev/null"
+reload_cmd = "kill -1 `cat /app/database.pid`"

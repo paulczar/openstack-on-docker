@@ -1,0 +1,44 @@
+export OS_SERVICE_TOKEN={{ .openstack_keystone_adminToken }}
+
+export OS_SERVICE_ENDPOINT=http://127.0.0.1:35357/v2.0
+
+export ADMIN_USER={{ .openstack_keystone_adminUser }}
+export ADMIN_PASS={{ .openstack_keystone_adminPass }}
+export ADMIN_TENANT={{ .openstack_keystone_adminTenant }}
+export ADMIN_ROLE={{ .openstack_keystone_adminRole }}
+export ADMIN_EMAIL={{ .openstack_keystone_adminEmail }}
+
+echo 'Keystone: configuring database'
+keystone-manage db_sync
+
+echo 'Keystone: configuring pki'
+keystone-manage pki_setup --keystone-user root --keystone-group root
+
+echo 'Keystone: Create Tenant - Admin'
+keystone tenant-create --name=${ADMIN_TENANT} --description="Admin Tenant"
+
+echo 'Keystone: Create Tenant - Service'
+keystone tenant-create --name=service --description="Service Tenant"
+
+echo 'Keystone: Create User - Admin'
+keystone user-create --name=${ADMIN_USER} --pass=${ADMIN_PASS} --email=${ADMIN_EMAIL}
+
+echo 'Keystone: Create Role - Admin'
+keystone role-create --name=${ADMIN_ROLE}
+
+echo 'Keystone: Add Admin user to Admin Role in Admin tenant'
+keystone user-role-add --user=${ADMIN_USER} --tenant=${ADMIN_TENANT} --role=${ADMIN_ROLE}
+
+echo 'Keystone: Create identity service'
+keystone service-create --name=keystone --type=identity \
+  --description="Keystone Identity Service"
+
+export SERVICE_ID=`keystone service-list | grep keystone | awk {'print $2'}`
+
+keystone endpoint-create \
+  --service-id=$SERVICE_ID \
+  --publicurl=http://${HOST}:5000/v2.0 \
+  --internalurl=http://${HOST}:5000/v2.0 \
+  --adminurl=http://${HOST}:35357/v2.0
+
+exit 0

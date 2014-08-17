@@ -3,23 +3,22 @@
 # Author: Paul Czarkowski
 # Date: 08/11/2013
 
-
-FROM openstack/common
+FROM paulczar/openstack-base
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
-RUN git clone --depth 1 -b stable/havana https://github.com/openstack/keystone.git /opt/openstack/keystone
+RUN git clone --depth 1 -b stable/icehouse https://github.com/openstack/keystone.git /opt/openstack/keystone
 
 RUN cd /opt/openstack/keystone && python setup.py install
 
-RUN apt-get -yqq install python-keystoneclient
+# I don't even...
+RUN pip install -r /opt/openstack/keystone/requirements.txt
 
-ADD keystone-paste.ini /etc/keystone/keystone-paste.ini
-ADD keystone.conf /etc/keystone/keystone.conf
-ADD start-keystone.sh /opt/openstack/keystone/bin/start-keystone.sh
-ADD configure-keystone.sh /opt/openstack/keystone/bin/configure-keystone.sh
-
-RUN chmod +x /opt/openstack/keystone/bin/*.sh
+RUN mkdir -p /etc/keystone && chmod 0700 /etc/keystone
 
 EXPOSE 5000 35357
 
-CMD ["/opt/openstack/keystone/bin/start-keystone.sh"]
+ADD . /app
+
+RUN chmod +x /app/bin/*
+
+CMD ["/app/bin/boot"]

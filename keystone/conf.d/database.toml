@@ -1,0 +1,12 @@
+[template]
+src   = "database"
+dest  = "/app/bin/database"
+owner = "root"
+group = "root"
+mode  = "0755"
+keys = [
+  "/openstack/keystone",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"
+reload_cmd = "/app/bin/database"

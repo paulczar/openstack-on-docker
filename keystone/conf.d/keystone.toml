@@ -1,0 +1,12 @@
+[template]
+src   = "keystone.conf"
+dest  = "/etc/keystone/keystone.conf"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+  "/openstack/keystone",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"
+reload_cmd = "kill -1 `cat /app/keystone.pid`"

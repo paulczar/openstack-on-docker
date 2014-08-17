@@ -2,39 +2,66 @@
 
 # About
 
-This project attempts to start the various openstack components inside docker containers.
+This project attempts to start the various openstack components inside docker containers running on CoreOS
 
-* Uses docker's new[ish] naming and link features ( developed on 0.7.2 )
-* wrapper scripts to build / start containers
-* Currently working : Keystone,  Glance
+* Currently working : Keystone
 
 # Using
 
 ```
-git clone https://github.com/paulczar/openstack-on-docker.git
-cd openstack-on-docker
-bin/build_all
-bin/start_all
+$ git clone https://github.com/paulczar/openstack-on-docker.git
+$ vagrant up
+$ vagrant ssh
+$ docker build -t paulczar/openstack-base shared/base
+$ docker build -t paulczar/openstack-database shared/database
+$ docker build -t paulczar/openstack-keystone shared/keystone
+$ fleetctl load shared/database/systemd/*
+$ fleetctl load shared/keystone/systemd/*
+$ fleetctl start openstack-database-data
+$ fleetctl start openstack-database
+$ fleetctl start openstack-keystone
+$ fleetctl list-units
+$ journalctl -f
+```
 
-source ./openrc
-keystone catalog
-wget -O /tmp/cirros.img http://cdn.download.cirros-cloud.net/0.3.1/cirros-0.3.1-x86_64-disk.img
-glance image-create --name=test --disk-format=qcow2 --container-format=bare --is-public=true < /tmp/cirros.img
-glance image-list
-
-bin/destroy
+```
+$ docker run --rm -e HOST=172.17.8.101 paulczar/openstack-keystone /app/bin/catalog
+Service: identity
++-------------+----------------------------------+
+|   Property  |              Value               |
++-------------+----------------------------------+
+|   adminURL  |  http://172.17.8.101:35357/v2.0  |
+|      id     | 00835fb1c20d41d090c0494b18ea282a |
+| internalURL |  http://172.17.8.101:5000/v2.0   |
+|  publicURL  |  http://172.17.8.101:5000/v2.0   |
+|    region   |            regionOne             |
++-------------+----------------------------------+
 
 ```
 
 ## Cleanup ##
 
 ```
-docker kill openstack-mysql openstack-glance openstack-
+vagrant destroy -f
 ```
+
+# Special Thanks
+
+To the [deis](http://deis.io) project.   I borrowed heavily from the methods they use to create and manage service discovery.
 
 # License
 
-Apache 2
+Copyright 2014 Paul Czarkowski
+Copyright 2013 OpDemand LLC
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 # Authors
 

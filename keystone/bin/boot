@@ -1,0 +1,118 @@
+#!/bin/bash
+#
+# This script is designed to be run inside the container
+#
+
+# fail hard and fast even on pipelines
+set -eo pipefail
+
+# set debug based on envvar
+[[ $DEBUG ]] && set -x
+
+# create keystone config directory
+mkdir -p /etc/keystone
+chmod 0755 /etc/keystone
+
+# configure etcd
+export ETCD_PORT=${ETCD_PORT:-4001}
+export ETCD="$HOST:$ETCD_PORT"
+export ETCD_PATH=${ETCD_PATH:-/openstack/keystone}
+export ETCD_TTL=${ETCD_TTL:-10}
+
+# initialize data volume
+
+# wait for etcd to be available
+until etcdctl --no-sync -C $ETCD ls >/dev/null 2>&1; do
+  echo "waiting for etcd at $ETCD..."
+  sleep $(($ETCD_TTL/2))  # sleep for half the TTL
+done
+
+# wait until etcd has discarded potentially stale values
+sleep $(($ETCD_TTL+1))
+
+function etcd_set_default {
+  etcdctl --no-sync -C $ETCD mk $ETCD_PATH/$1 $2 >/dev/null 2>&1 || true
+}
+
+MYSQL_USER=${MYSQL_USER:-keystone}
+MYSQL_PASS=${MYSQL_PASS:-keystone}
+ADMIN_TOKEN=${ADMIN_TOKEN:-admin}
+ADMIN_USER=${ADMIN_USER:-admin}
+ADMIN_PASS=${ADMIN_PASS:-admin}
+ADMIN_TENANT=${ADMIN_TENANT:-admin}
+ADMIN_ROLE=${ADMIN_ROLE:-admin}
+ADMIN_EMAIL=${ADMIN_EMAIL:-"admin@example.com"}
+
+etcd_set_default databaseUser ${MYSQL_USER}
+etcd_set_default databasePass ${MYSQL_PASS}
+etcd_set_default adminToken ${ADMIN_TOKEN}
+etcd_set_default adminUser ${ADMIN_USER}
+etcd_set_default adminPass ${ADMIN_PASS}
+etcd_set_default adminTenant ${ADMIN_TENANT}
+etcd_set_default adminRole ${ADMIN_ROLE}
+etcd_set_default adminEmail ${ADMIN_EMAIL}
+
+# wait for confd to run once and install initial templates
+until confd -onetime -node $ETCD -config-file /app/confd.toml; do
+  echo "database: waiting for confd to write initial templates..."
+  sleep $(($ETCD_TTL/2))  # sleep for half the TTL
+done
+
+# create the database for keystone
+/app/bin/database
+
+# for some reason PBR didn't install correctly
+ pip install pbr --upgrade
+
+# run the service in the background
+keystone-all &
+
+SERVICE_PID=$!
+
+echo ${SERVICE_PID} > /app/keystone.pid
+
+# smart shutdown on SIGINT and SIGTERM
+function on_exit() {
+    kill -TERM $SERVICE_PID
+    wait $SERVICE_PID 2>/dev/null
+    exit 0
+}
+trap on_exit INT TERM
+
+# spawn confd in the background to update services based on etcd changes
+confd -node $ETCD -config-file /app/confd.toml &
+CONFD_PID=$!
+
+# wait for the service to become available
+sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".5000\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+
+echo openstack-keystone running...
+
+# migrate database and create admin tenant.
+echo creating admin tenant
+/app/bin/configure
+
+# publish the service to etcd using the injected HOST and PORT
+if [[ ! -z $PUBLISH ]]; then
+
+  # configure service discovery
+  PORT=${PORT:-5000}
+  PROTO=${PROTO:-tcp}
+
+  set +e
+
+  # wait for the service to become available on PUBLISH port
+  sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do sleep 1; done
+
+  # while the port is listening, publish to etcd
+  while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
+    etcdctl --no-sync -C $ETCD set $ETCD_PATH/host $HOST --ttl $ETCD_TTL >/dev/null
+    etcdctl --no-sync -C $ETCD set $ETCD_PATH/port $PORT --ttl $ETCD_TTL >/dev/null
+    sleep $(($ETCD_TTL/2)) # sleep for half the TTL
+  done
+
+  # if the loop quits, something went wrong
+  exit 1
+fi
+
+wait
