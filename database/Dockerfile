@@ -3,7 +3,7 @@
 # Author: Paul Czarkowski
 # Date: 08/16/2014
 
-FROM paulczar/openstack-base
+FROM dockenstack/base
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
 RUN \

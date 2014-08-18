@@ -3,7 +3,7 @@
 # Author: Paul Czarkowski
 # Date: 08/11/2013
 
-FROM paulczar/openstack-base
+FROM dockenstack/base
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
 RUN git clone --depth 1 -b stable/icehouse https://github.com/openstack/keystone.git /opt/openstack/keystone
