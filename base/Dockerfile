@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -yq \
 # Openstack Deps
 RUN apt-get -yqq install curl git bzip2 python-dev libxml2-dev libxslt1-dev \
     zlib1g-dev libreadline-dev libmysqlclient-dev libsqlite3-dev libdb-dev python-mysqldb \
-    build-essential mysql-client --no-install-recommends
+    build-essential mysql-client libffi-dev --no-install-recommends
 
 # generate a local to suppress warnings
 RUN locale-gen en_US.UTF-8
