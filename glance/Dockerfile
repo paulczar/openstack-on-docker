@@ -1,24 +1,26 @@
 # Creates openstack common base image
 #
 # Author: Paul Czarkowski
-# Date: 08/11/2013
+# Date: 08/19/2014
 
-
-FROM racker/precise-with-updates
+FROM dockenstack/base
 MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
-RUN git clone --depth 1 -b stable/havana https://github.com/openstack/glance.git /opt/openstack/glance
+RUN git clone --depth 1 -b stable/icehouse https://github.com/openstack/glance.git /opt/openstack/glance
 
 RUN cd /opt/openstack/glance && python setup.py install
 
-RUN apt-get -yqq install python-keystoneclient
+# I don't even...
+RUN pip install -r /opt/openstack/glance/requirements.txt
 
-ADD etc /etc/glance
-ADD configure-glance.sh /opt/openstack/glance/bin/configure-glance.sh
-ADD start-glance.sh /opt/openstack/glance/bin/start-glance.sh
+RUN pip install python-glanceclient
 
-RUN chmod +x /opt/openstack/glance/bin/*.sh
+RUN mkdir -p /etc/glance && mkdir -p /var/lib/glance/images && mkdir -p /var/log/glance
 
-EXPOSE 5000 35357
+ADD . /app
 
-CMD ["/opt/openstack/glance/bin/start-glance.sh"]
+RUN chmod +x /app/bin/*
+
+EXPOSE 9191
+
+CMD ["/app/bin/boot"]

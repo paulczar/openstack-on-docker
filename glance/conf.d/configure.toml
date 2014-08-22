@@ -1,0 +1,13 @@
+[template]
+src   = "configure"
+dest  = "/app/bin/configure"
+owner = "root"
+group = "root"
+mode  = "0755"
+keys = [
+  "/openstack/keystone",
+  "/openstack/glance",  
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"
+reload_cmd = "/app/bin/configure"

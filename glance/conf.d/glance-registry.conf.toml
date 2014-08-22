@@ -1,0 +1,12 @@
+[template]
+src   = "glance-registry.conf"
+dest  = "/etc/glance/glance-registry.conf"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+  "/openstack/keystone",
+  "/openstack/glance",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"

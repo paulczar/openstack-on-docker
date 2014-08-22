@@ -1,0 +1,11 @@
+[template]
+src   = "openrc"
+dest  = "/app/openrc"
+owner = "root"
+group = "root"
+mode  = "0755"
+keys = [
+  "/openstack/keystone",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"

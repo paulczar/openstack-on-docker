@@ -12,19 +12,10 @@ set -eo pipefail
 # configure etcd
 export ETCD_PORT=${ETCD_PORT:-4001}
 export ETCD="$HOST:$ETCD_PORT"
-export ETCD_PATH=${ETCD_PATH:-/openstack/database}
+export ETCD_PATH=${ETCD_PATH:-/openstack/glance}
 export ETCD_TTL=${ETCD_TTL:-10}
 
 # initialize data volume
-chown -R mysql:mysql /var/lib/mysql
-if [[ ! -d $VOLUME_HOME/mysql ]]; then
-  echo "=> An empty or uninitialized MariaDB volume is detected in $VOLUME_HOME"
-  echo "=> Installing MariaDB ..."
-  mysql_install_db > /dev/null 2>&1
-  echo "=> Done!"
-else
-  echo "=> Using an existing volume of MariaDB"
-fi
 
 # wait for etcd to be available
 until etcdctl --no-sync -C $ETCD ls >/dev/null 2>&1; do
@@ -39,12 +30,11 @@ function etcd_set_default {
   etcdctl --no-sync -C $ETCD mk $ETCD_PATH/$1 $2 >/dev/null 2>&1 || true
 }
 
-MYSQL_USER=${MYSQL_USER:-openstack}
-MYSQL_PASS=${MYSQL_PASS:-openstack}
+MYSQL_USER=${MYSQL_USER:-glance}
+MYSQL_PASS=${MYSQL_PASS:-glance}
 
-etcd_set_default engine mysql
-etcd_set_default adminUser ${MYSQL_USER}
-etcd_set_default adminPass ${MYSQL_PASS}
+etcd_set_default databaseUser ${MYSQL_USER}
+etcd_set_default databasePass ${MYSQL_PASS}
 
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do
@@ -52,13 +42,20 @@ until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   sleep $(($ETCD_TTL/2))  # sleep for half the TTL
 done
 
+# create the database for glance
+/app/bin/database
+
 # run the service in the background
-#service mysql start
-mysqld_safe &
+glance-registry &
+SERVICE_PID=$!
+echo ${SERVICE_PID} > /app/glance-registry.pid
+
+# run the service in the background
+glance-api &
 
 SERVICE_PID=$!
 
-echo $SERVICE_PID > /app/database.pid
+echo ${SERVICE_PID} > /app/glance-api.pid
 
 # smart shutdown on SIGINT and SIGTERM
 function on_exit() {
@@ -73,18 +70,18 @@ confd -node $ETCD -config-file /app/confd.toml &
 CONFD_PID=$!
 
 # wait for the service to become available
-sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".9292\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
 
-# perform a one-time reload to populate database entries
-/usr/local/bin/reload
+echo openstack-glance-api running...
 
-echo openstack-database running...
+# migrate database and create service endpoint.
+/app/bin/configure
 
 # publish the service to etcd using the injected HOST and PORT
 if [[ ! -z $PUBLISH ]]; then
 
   # configure service discovery
-  PORT=${PORT:-3306}
+  PORT=${PORT:-9292}
   PROTO=${PROTO:-tcp}
 
   set +e
@@ -101,7 +98,6 @@ if [[ ! -z $PUBLISH ]]; then
 
   # if the loop quits, something went wrong
   exit 1
-
 fi
 
 wait

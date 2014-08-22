@@ -1,0 +1,12 @@
+[template]
+src   = "glance-registry-paste.ini"
+dest  = "/etc/glance/glance-registry-paste.ini"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+  "/openstack/glance",
+  "/openstack/keystone",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"

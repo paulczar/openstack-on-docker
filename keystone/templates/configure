@@ -30,12 +30,12 @@ echo 'Keystone: Add Admin user to Admin Role in Admin tenant'
 keystone user-role-add --user=${ADMIN_USER} --tenant=${ADMIN_TENANT} --role=${ADMIN_ROLE}
 
 echo 'Keystone: Create identity service'
-keystone service-create --name=keystone --type=identity \
+keystone service-list | grep keystone || keystone service-create --name=keystone --type=identity \
   --description="Keystone Identity Service"
 
-export SERVICE_ID=`keystone service-list | grep keystone | awk {'print $2'}`
+export SERVICE_ID=`keystone service-list | grep keystone | head -1 | awk {'print $2'}`
 
-keystone endpoint-create \
+keystone endpoint-list | grep $SERVICE_ID || keystone endpoint-create \
   --service-id=$SERVICE_ID \
   --publicurl=http://${HOST}:5000/v2.0 \
   --internalurl=http://${HOST}:5000/v2.0 \
