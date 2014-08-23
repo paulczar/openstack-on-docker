@@ -12,9 +12,7 @@ This project attempts to start the various openstack components inside docker co
 $ git clone https://github.com/paulczar/openstack-on-docker.git
 $ vagrant up
 $ vagrant ssh
-$ fleetctl load shared/database/systemd/*
-$ fleetctl load shared/keystone/systemd/*
-$ fleetctl load shared/glance/systemd/*
+$ fleetctl load share/*/systemd/*
 $ fleetctl start openstack-database-data
 $ fleetctl start openstack-glance-data
 $ fleetctl start openstack-database

@@ -1,13 +1,12 @@
 [template]
-src   = "glance.conf"
-dest  = "/etc/glance/glance.conf"
+src   = "glance-cache.conf"
+dest  = "/etc/glance/glance-cache.conf"
 owner = "root"
 group = "root"
 mode  = "0644"
 keys = [
-  "/openstack/glance",
   "/openstack/keystone",
+  "/openstack/glance",
   "/openstack/database",
 ]
 check_cmd = "/app/bin/check {{ .src }}"
-reload_cmd = "kill -1 `cat /app/glance-api.pid`"

@@ -1,0 +1,12 @@
+[template]
+src   = "glance-scrubber.conf"
+dest  = "/etc/glance/glance-scrubber.conf"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+  "/openstack/keystone",
+  "/openstack/glance",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"

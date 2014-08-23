@@ -22,5 +22,6 @@ ADD . /app
 RUN chmod +x /app/bin/*
 
 EXPOSE 9191
+EXPOSE 9292
 
 CMD ["/app/bin/boot"]
