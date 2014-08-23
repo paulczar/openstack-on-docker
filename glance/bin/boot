@@ -46,12 +46,12 @@ done
 /app/bin/database
 
 # run the service in the background
-glance-registry &
+glance-registry -v &
 SERVICE_PID=$!
 echo ${SERVICE_PID} > /app/glance-registry.pid
 
 # run the service in the background
-glance-api &
+glance-api -v &
 
 SERVICE_PID=$!
 

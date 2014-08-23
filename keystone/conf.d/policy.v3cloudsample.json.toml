@@ -1,0 +1,11 @@
+[template]
+src   = "policy.v3cloudsample.json"
+dest  = "/etc/keystone/policy.v3cloudsample.json"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+  "/openstack/keystone",
+  "/openstack/database",
+]
+check_cmd = "/app/bin/check {{ .src }}"

@@ -65,7 +65,7 @@ done
  pip install pbr --upgrade
 
 # run the service in the background
-keystone-all &
+keystone-all -v &
 
 SERVICE_PID=$!
 
