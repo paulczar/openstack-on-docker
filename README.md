@@ -4,7 +4,9 @@
 
 This project attempts to start the various openstack components inside docker containers running on CoreOS
 
-* Currently working : Keystone
+* Currently working : Keystone, Glance
+
+_currently unable to save glance images as public_
 
 # Using
 
