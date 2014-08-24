@@ -78,6 +78,7 @@ Vagrant.configure('2') do |config|
         c.vm.provision :file, source: "#{CLOUD_CONFIG_PATH}", destination: '/tmp/vagrantfile-user-data'
         c.vm.provision :shell, inline: 'mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/', privileged: true
         c.vm.provision :shell, inline: 'fleetctl load share/*/systemd/*'
+        c.vm.provision :shell, inline: 'docker run --rm -v /tmp:/target jpetazzo/nsenter'
         c.vm.provision :shell, inline: 'docker pull dockenstack/base'
         c.vm.provision :shell, inline: 'fleetctl start openstack-database-data'
         c.vm.provision :shell, inline: 'fleetctl start openstack-glance-data'
