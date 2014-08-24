@@ -13,7 +13,7 @@ RUN \
   echo "deb http://mariadb.mirror.iweb.com/repo/10.0/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/mariadb.list && \
   ln -fs /bin/true /usr/bin/chfn && \
   apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-galera-server galera rsync && \
   sed -i 's/^\(bind-address\s.*\)/# \1/' /etc/mysql/my.cnf && \
   echo "mysqld_safe &" > /tmp/config && \
   echo "sleep 5" >> /tmp/config && \
@@ -36,3 +36,5 @@ CMD ["/app/bin/boot"]
 
 # Expose ports.
 EXPOSE 3306
+EXPOSE 4444
+EXPOSE 4567
