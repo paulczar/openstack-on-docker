@@ -15,17 +15,6 @@ export ETCD="$HOST:$ETCD_PORT"
 export ETCD_PATH=${ETCD_PATH:-/openstack/database}
 export ETCD_TTL=${ETCD_TTL:-10}
 
-# initialize data volume
-chown -R mysql:mysql /var/lib/mysql
-if [[ ! -d /var/lib/mysql/mysql ]]; then
-  echo "=> An empty or uninitialized database is detected in /var/lib/mysql"
-  echo "=> Creating database..."
-  mysql_install_db > /dev/null 2>&1
-  echo "=> Done!"
-else
-  echo "=> Using an existing database"
-fi
-
 # wait for etcd to be available
 until etcdctl --no-sync -C $ETCD ls >/dev/null 2>&1; do
   echo "waiting for etcd at $ETCD..."
@@ -43,24 +32,11 @@ function etcd_make_directory {
   etcdctl --no-sync -C $ETCD setdir $ETCD_PATH/$1 >/dev/null 2>&1 || true
 }
 
-MYSQL_USER=${MYSQL_USER:-openstack}
-MYSQL_PASS=${MYSQL_PASS:-openstack}
-REP_USER=${REP_USER:-replicator}
-REP_PASS=${REP_PASS:-replicator}
-CLUSTER=${CLUSTER:-galera}
-
-PORT=${PORT:-3306}
+PORT=${PORT:-3307}
 PROTO=${PROTO:-tcp}
 
-etcd_set_default engine percona
-etcd_set_default credentials/adminUser ${MYSQL_USER}
-etcd_set_default credentials/adminPass ${MYSQL_PASS}
-etcd_set_default credentials/repUser ${REP_USER}
-etcd_set_default credentials/repPass ${REP_PASS}
-etcd_set_default cluster/name ${CLUSTER}
-etcd_make_directory cluster/mysqlNodes
-etcd_make_directory cluster/galeraEndpoints
-
+etcd_set_default port $PORT
+etcd_set_default host $HOST
 
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do
@@ -68,31 +44,11 @@ until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   sleep $(($ETCD_TTL/2))  # sleep for half the TTL
 done
 
-CLUSTER_MEMBERS=$(etcdctl --no-sync -C $ETCD ls $ETCD_PATH/cluster/galeraEndpoints | awk -F/ '{print $6}' | xargs | sed 's/ /,/')
-
-# run the service in the background
-#service mysql start
-
-WSREP_OPTIONS="--wsrep_node_address=$HOST --skip-syslog --verbose"
-#WSREP_OPTIONS="--verbose --skip-syslog"
-
-# start mysql in order to set up passwords and then kill it again
-
-mysqld_safe --skip-syslog --verbose &
-sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
-/app/bin/reload
-mysqladmin shutdown
-
-
-if [[ -z $CLUSTER_MEMBERS ]]; then
-  mysqld_safe --wsrep-new-cluster $WSREP_OPTIONS &
-else
-  mysqld_safe --wsrep_cluster_address=gcomm://$CLUSTER_MEMBERS $WSREP_OPTIONS &
-fi
+haproxy -f /etc/haproxy/haproxy.cfg &
 
 SERVICE_PID=$!
 
-echo $SERVICE_PID > /app/database.pid
+echo $SERVICE_PID > /app/haproxy.pid
 
 # smart shutdown on SIGINT and SIGTERM
 function on_exit() {
@@ -107,7 +63,7 @@ confd -node $ETCD -config-file /app/confd.toml &
 CONFD_PID=$!
 
 # wait for the service to become available
-sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3307\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
 
 # perform a one-time reload to populate database entries
 # give it a good sleep then...
@@ -126,8 +82,8 @@ if [[ ! -z $PUBLISH ]]; then
 
   # while the port is listening, publish to etcd
   while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/galeraEndpoints/$HOST:4567 $HOST:4567 --ttl $ETCD_TTL >/dev/null
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/mysqlNodes/$HOST $HOST:$PUBLISH --ttl $ETCD_TTL >/dev/null
+    etcdctl --no-sync -C $ETCD set $ETCD_PATH/host $HOST --ttl $ETCD_TTL >/dev/null
+    etcdctl --no-sync -C $ETCD set $ETCD_PATH/port $PUBLISH --ttl $ETCD_TTL >/dev/null
     sleep $(($ETCD_TTL/2)) # sleep for half the TTL
   done
 

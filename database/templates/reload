@@ -5,7 +5,6 @@
 
 mysql -e 'SET wsrep_on=OFF; GRANT ALL ON *.* TO "{{ .openstack_database_credentials_repUser }}"@"%" IDENTIFIED BY "{{ .openstack_database_credentials_repPass }}";'
 mysql -e 'SET wsrep_on=OFF; GRANT ALL ON *.* TO "{{ .openstack_database_credentials_repUser }}"@"localhost" IDENTIFIED BY "{{ .openstack_database_credentials_repPass }}";'
-# mysql -e 'CREATE USER {{ .openstack_database_credentials_adminUser }};' || echo .
 mysql -e 'SET wsrep_on=OFF; GRANT ALL PRIVILEGES ON *.* TO "{{ .openstack_database_credentials_adminUser }}"@"%" IDENTIFIED BY "{{ .openstack_database_credentials_adminPass }}";'
 mysql -e 'SET wsrep_on=OFF; GRANT SUPER ON *.* TO "{{ .openstack_database_credentials_adminUser }}"@"%" WITH GRANT OPTION;'
 mysql -e 'FLUSH PRIVILEGES;'

@@ -27,3 +27,18 @@ $expose_docker_tcp=4243
 
 # enable port forwarding of etcd
 $expose_etcd_tcp=4001
+
+def write_user_data(num_instances)
+    require 'erb'
+    require 'net/http'
+    require 'uri'
+    if $num_instances == 1
+      @etcd_discovery = '# single node no discovery needed.'
+    else
+      @etcd_discovery = "discovery: #{Net::HTTP.get(URI.parse('http://discovery.etcd.io/new'))}"
+    end
+    template = File.join(File.dirname(__FILE__), 'user-data.erb')
+    target = File.join(File.dirname(__FILE__), 'user-data')
+    content = ERB.new File.new(template).read
+    File.open(target, 'w') { |f| f.write(content.result(binding)) }
+end

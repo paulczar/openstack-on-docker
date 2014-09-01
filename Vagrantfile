@@ -21,6 +21,11 @@ end
 
 require_relative CONFIG if File.exist?(CONFIG)
 
+if ARGV.include? 'up'
+  puts 'rewriting userdata'
+  write_user_data($num_instances) 
+end
+
 Vagrant.configure('2') do |config|
   config.vm.box = 'coreos-beta'
   config.vm.box_version = '>= 308.0.1'

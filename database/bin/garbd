@@ -85,7 +85,7 @@ if [[ ! -z $PUBLISH ]]; then
 
   # while the port is listening, publish to etcd
   while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/galeraEndpoints/$HOST:4567 1 --ttl $ETCD_TTL >/dev/null
+    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/galeraEndpoints/$HOST:4567 $HOST:4567 --ttl $ETCD_TTL >/dev/null
     sleep $(($ETCD_TTL/2)) # sleep for half the TTL
   done
 

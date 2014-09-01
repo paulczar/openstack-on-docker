@@ -1,0 +1,10 @@
+[template]
+src   = "haproxy.cfg"
+dest  = "/etc/haproxy/haproxy.cfg"
+owner = "root"
+group = "root"
+mode  = "0644"
+keys = [
+]
+check_cmd = "echo 1"
+reload_cmd = "kill -1 `cat /app/haproxy.pid`"

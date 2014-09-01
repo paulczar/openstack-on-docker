@@ -1,4 +1,4 @@
-# This file creates a container that runs MariaDB for Openstack on Docker
+# This file creates a container that runs Database (Percona) for Openstack on Docker
 #
 # Author: Paul Czarkowski
 # Date: 08/16/2014
@@ -14,7 +14,7 @@ RUN \
   echo "deb-src http://repo.percona.com/apt `lsb_release -cs` main" >> /etc/apt/sources.list.d/percona.list && \
   ln -fs /bin/true /usr/bin/chfn && \
   apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y percona-xtradb-cluster-client-5.6 percona-xtradb-cluster-server-5.6  percona-xtrabackup rsync percona-xtradb-cluster-garbd-3.x && \
+  DEBIAN_FRONTEND=noninteractive apt-get install -y percona-xtradb-cluster-client-5.6 percona-xtradb-cluster-server-5.6  percona-xtrabackup rsync percona-xtradb-cluster-garbd-3.x haproxy && \
   sed -i 's/^\(bind-address\s.*\)/# \1/' /etc/mysql/my.cnf
 
 #RUN \
