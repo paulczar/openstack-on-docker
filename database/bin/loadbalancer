@@ -32,11 +32,15 @@ function etcd_make_directory {
   etcdctl --no-sync -C $ETCD setdir $ETCD_PATH/$1 >/dev/null 2>&1 || true
 }
 
+function etcd_set {
+  etcdctl --no-sync -C $ETCD set $ETCD_PATH/$1 $2 --ttl $ETCD_TTL >/dev/null 2>&1 || true
+}
+
 PORT=${PUBLISH:-3307}
 PROTO=${PROTO:-tcp}
 
-etcd_set_default port $PORT
-etcd_set_default host $HOST
+etcd_set port $PORT  
+etcd_set host $HOST
 
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do

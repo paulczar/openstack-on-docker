@@ -6,8 +6,8 @@ After=openstack-database-2-data.service
 [Service]
 EnvironmentFile=/etc/environment
 TimeoutStartSec=20m
-ExecStartPre=/usr/bin/docker pull dockenstack/database:galera
-ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database-2 --rm -p 3306:3306 -p 4444:4444 -p 4567:4567 -p 4568:4568 -e PUBLISH=3306 -e HOST=$COREOS_PRIVATE_IPV4 -e CLUSTER=openstack --volumes-from openstack-database-2-data dockenstack/database:galera"
+ExecStartPre=/usr/bin/docker pull dockenstack/database:latest
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database-2 --rm -p 3306:3306 -p 4444:4444 -p 4567:4567 -p 4568:4568 -e PUBLISH=3306 -e HOST=$COREOS_PRIVATE_IPV4 -e CLUSTER=openstack --volumes-from openstack-database-2-data dockenstack/database:latest"
 ExecStop=/usr/bin/docker stop openstack-database-2
 
 [X-Fleet]

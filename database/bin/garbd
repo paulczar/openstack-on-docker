@@ -50,13 +50,17 @@ etcd_set_default cluster/name ${CLUSTER}
 etcd_make_directory cluster/mysqlNodes
 etcd_make_directory cluster/galeraEndpoints
 
+
+# I don't want to be the first guy in the cluster.
+while [[ -z $(etcdctl --no-sync -C $ETCD ls $ETCD_PATH/cluster/galeraEndpoints | awk -F/ '{print $6}' | xargs | sed 's/ /,/') ]]
+do 
+  echo "waiting for other nodes"
+  sleep 10
+done
+
 CLUSTER_MEMBERS=$(etcdctl --no-sync -C $ETCD ls $ETCD_PATH/cluster/galeraEndpoints | awk -F/ '{print $6}' | xargs | sed 's/ /,/')
 
-if [[ -z $CLUSTER_MEMBERS ]]; then
-  garbd -a gcomm://?pc.wait_prim=no -g $CLUSTER -n $HOST &
-else
-  garbd -a gcomm://$CLUSTER_MEMBERS?pc.wait_prim=no -g $CLUSTER -n $HOST &
-fi
+garbd -a gcomm://$CLUSTER_MEMBERS?pc.wait_prim=no -g $CLUSTER -n $HOST &
 
 SERVICE_PID=$!
 

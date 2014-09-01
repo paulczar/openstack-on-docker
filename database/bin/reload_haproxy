@@ -2,5 +2,4 @@
 
 haproxy -f /etc/haproxy/haproxy.cfg -sf $(cat /app/haproxy.pid) &
 
-SERVICE_PID=$!
-echo $SERVICE_PID > /app/haproxy.pid
+echo $! > /app/haproxy.pid
