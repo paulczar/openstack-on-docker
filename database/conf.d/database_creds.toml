@@ -1,6 +1,6 @@
 [template]
-src   = "reload"
-dest  = "/app/bin/reload"
+src   = "database_creds"
+dest  = "/app/bin/database_creds"
 owner = "root"
 group = "root"
 mode  = "0755"

@@ -85,7 +85,7 @@ mysqld_safe --skip-syslog --verbose &
 echo sleeping for 20 seconds, then testing if DB is up.
 sleep 20
 while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
-/app/bin/reload
+/app/bin/database_creds
 
 echo stopping mysql after setting up passwords
 mysqladmin shutdown
