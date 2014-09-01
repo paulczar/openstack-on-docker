@@ -47,7 +47,6 @@ MYSQL_USER=${MYSQL_USER:-openstack}
 MYSQL_PASS=${MYSQL_PASS:-openstack}
 REP_USER=${REP_USER:-replicator}
 REP_PASS=${REP_PASS:-replicator}
-CLUSTER=${CLUSTER:-galera}
 
 PORT=${PORT:-3306}
 PROTO=${PROTO:-tcp}
@@ -57,10 +56,15 @@ etcd_set_default credentials/adminUser ${MYSQL_USER}
 etcd_set_default credentials/adminPass ${MYSQL_PASS}
 etcd_set_default credentials/repUser ${REP_USER}
 etcd_set_default credentials/repPass ${REP_PASS}
-etcd_set_default cluster/name ${CLUSTER}
-etcd_make_directory cluster/mysqlNodes
-etcd_make_directory cluster/galeraEndpoints
 
+if [[ -z $CLUSTER ]]; then
+  etcd_set_default host $HOST
+  etcd_set_default port $PORT
+else
+  etcd_set_default cluster/name ${CLUSTER}
+  etcd_make_directory cluster/mysqlNodes
+  etcd_make_directory cluster/galeraEndpoints
+fi
 
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do
@@ -126,8 +130,13 @@ if [[ ! -z $PUBLISH ]]; then
 
   # while the port is listening, publish to etcd
   while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/galeraEndpoints/$HOST:4567 $HOST:4567 --ttl $ETCD_TTL >/dev/null
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/mysqlNodes/$HOST $HOST:$PUBLISH --ttl $ETCD_TTL >/dev/null
+    if [[ -z $CLUSTER ]]; then
+      etcdctl --no-sync -C $ETCD set $ETCD_PATH/host $HOST --ttl $ETCD_TTL >/dev/null
+      etcdctl --no-sync -C $ETCD set $ETCD_PATH/port $PUBLISH --ttl $ETCD_TTL >/dev/null
+    else
+      etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/galeraEndpoints/$HOST:4567 $HOST:4567 --ttl $ETCD_TTL >/dev/null
+      etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/mysqlNodes/$HOST $HOST:$PUBLISH --ttl $ETCD_TTL >/dev/null
+    fi
     sleep $(($ETCD_TTL/2)) # sleep for half the TTL
   done
 

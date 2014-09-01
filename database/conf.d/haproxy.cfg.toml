@@ -5,6 +5,8 @@ owner = "root"
 group = "root"
 mode  = "0644"
 keys = [
+  "/openstack/database/port",
+  "/openstack/database/cluster/mysqlNodes"
 ]
-check_cmd = "echo 1"
+check_cmd = "/app/bin/check {{ .src }}"
 reload_cmd = "kill -1 `cat /app/haproxy.pid`"

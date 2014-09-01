@@ -32,7 +32,7 @@ function etcd_make_directory {
   etcdctl --no-sync -C $ETCD setdir $ETCD_PATH/$1 >/dev/null 2>&1 || true
 }
 
-PORT=${PORT:-3307}
+PORT=${PUBLISH:-3307}
 PROTO=${PROTO:-tcp}
 
 etcd_set_default port $PORT
@@ -65,12 +65,7 @@ CONFD_PID=$!
 # wait for the service to become available
 sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3307\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
 
-# perform a one-time reload to populate database entries
-# give it a good sleep then...
-sleep 10 
-/app/bin/reload
-
-echo openstack-database running...
+echo openstack-database-loadbalancer running...
 
 # publish the service to etcd using the injected HOST and PORT
 if [[ ! -z $PUBLISH ]]; then
