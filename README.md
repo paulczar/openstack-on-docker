@@ -46,11 +46,16 @@ $ fleetctl start openstack-database-1
 Galera Replication, XtraBackup SST, Arbitor, Load Balancer
 
 ```
-$ fleetctl start openstack-database-garbd
 $ fleetctl start openstack-database-1-data
 $ fleetctl start openstack-database-2-data
 $ fleetctl start openstack-database-1
+```
+
+This will kick off the first node in the db cluster.   Wait until it is `active` by running `watch fleetctl list-units` before proceeding:
+
+```
 $ fleetctl start openstack-database-2
+$ fleetctl start openstack-database-garbd
 $ fleetctl start openstack-database-loadbalancer
 ```
 
