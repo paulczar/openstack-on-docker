@@ -1,6 +1,6 @@
 [template]
 src   = "reload"
-dest  = "/usr/local/bin/reload"
+dest  = "/app/bin/reload"
 owner = "root"
 group = "root"
 mode  = "0755"
@@ -8,4 +8,4 @@ keys = [
   "/openstack/database",
 ]
 check_cmd = "/app/bin/check {{ .src }}"
-reload_cmd = "/usr/local/bin/reload"
+reload_cmd = "/app/bin/reload"

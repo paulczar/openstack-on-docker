@@ -1,17 +1,14 @@
 [Unit]
-Description=openstack-database
-Requires=openstack-database-data.service
-After=openstack-database-data.service
+Description=openstack-database-1
+Requires=openstack-database-1-data.service
+After=openstack-database-1-data.service
 
 [Service]
 EnvironmentFile=/etc/environment
 TimeoutStartSec=20m
-ExecStartPre=/usr/bin/docker pull dockenstack/database
-ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database --rm -p 3306:3306 -p 4444:4444 -p 4567:4567 -e PUBLISH=3306 -e HOST=$COREOS_PRIVATE_IPV4 -e CLUSTER=openstack -e MEMBER=1 --volumes-from openstack-database-data dockenstack/database"
-ExecStop=/usr/bin/docker stop openstack-database
+#ExecStartPre=/usr/bin/docker pull dockenstack/database
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database-1 --rm -p 3306:3306 -p 4444:4444 -p 4567:4567 -p 4568:4568 -e PUBLISH=3306 -e HOST=$COREOS_PRIVATE_IPV4 -e CLUSTER=openstack --volumes-from openstack-database-1-data dockenstack/database"
+ExecStop=/usr/bin/docker stop openstack-database-1
 
 [X-Fleet]
-X-ConditionMachineOf=openstack-database-data.service
-
-EXPOSE 4444
-EXPOSE 4567
+X-ConditionMachineOf=openstack-database-1-data.service

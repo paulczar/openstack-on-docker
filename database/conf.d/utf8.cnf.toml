@@ -1,6 +1,6 @@
 [template]
-src   = "mariadb.cnf"
-dest  = "/etc/mysql/conf.d/mariadb.cnf"
+src   = "utf8.cnf"
+dest  = "/etc/mysql/conf.d/utf8.cnf"
 owner = "root"
 group = "root"
 mode  = "0644"

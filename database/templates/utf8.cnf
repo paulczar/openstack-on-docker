@@ -1,4 +1,4 @@
-# MariaDB-specific config file.
+# UTF all the things config file.
 # Read by /etc/mysql/my.cnf
 
 [client]

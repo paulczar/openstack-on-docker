@@ -7,17 +7,17 @@ query_cache_type=0
 bind-address=0.0.0.0
 
 # Galera Provider Configuration
-wsrep_provider=/usr/lib/galera/libgalera_smm.so
-#wsrep_provider_options="gcache.size=32G"
+wsrep_provider=/usr/lib/libgalera_smm.so
+wsrep_slave_threads=2
 
 # Galera Cluster Configuration
-wsrep_cluster_name="{{ .openstack_database_cluster }}"
+wsrep_cluster_name="{{ .openstack_database_cluster_name }}"
 wsrep_cluster_address="gcomm://"
 
 # Galera Synchronization Congifuration
-wsrep_sst_method=rsync
 wsrep_sst_auth={{ .openstack_database_repUser }}:{{ .openstack_database_repPass }}
-
-# Galera Node Configuration
-wsrep_node_address="{{ .openstack_database_host }}"
-wsrep_node_name="mariadb_galera"
+wsrep_certify_nonPK=1
+wsrep_convert_LOCK_to_trx=0
+wsrep_auto_increment_control=1
+wsrep_causal_reads=0
+wsrep_sst_method=xtrabackup

@@ -9,25 +9,30 @@ MAINTAINER Paul Czarkowski "paul@paulcz.net"
 RUN \
   apt-get update && \
   apt-get -yqq install lsb-release && \
-  apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0xcbcb082a1bb943db && \
-  echo "deb http://mariadb.mirror.iweb.com/repo/10.0/ubuntu `lsb_release -cs` main" > /etc/apt/sources.list.d/mariadb.list && \
+  apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A && \
+  echo "deb http://repo.percona.com/apt `lsb_release -cs` main" > /etc/apt/sources.list.d/percona.list && \
+  echo "deb-src http://repo.percona.com/apt `lsb_release -cs` main" >> /etc/apt/sources.list.d/percona.list && \
   ln -fs /bin/true /usr/bin/chfn && \
   apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-galera-server galera rsync && \
-  sed -i 's/^\(bind-address\s.*\)/# \1/' /etc/mysql/my.cnf && \
-  echo "mysqld_safe &" > /tmp/config && \
-  echo "sleep 5" >> /tmp/config && \
-  echo "mysql -e 'GRANT ALL PRIVILEGES ON *.* TO \"root\"@\"%\";'" >> /tmp/config && \
-  bash /tmp/config && \
-  rm -f /tmp/config
+  DEBIAN_FRONTEND=noninteractive apt-get install -y percona-xtradb-cluster-client-5.6 percona-xtradb-cluster-server-5.6 percona-xtrabackup rsync && \
+  sed -i 's/^\(bind-address\s.*\)/# \1/' /etc/mysql/my.cnf
+
+#RUN \
+#  echo "mysqld_safe &" > /tmp/config && \
+#  echo "sleep 5" >> /tmp/config && \
+#  echo "mysql -e 'GRANT ALL PRIVILEGES ON *.* TO \"root\"@\"%\";'" >> /tmp/config && \
+#  bash /tmp/config && \
+#  rm -f /tmp/config
+
+RUN rm -rf /var/lib/mysql/*
 
 # Define mountable directories.
-VOLUME ["/data", "/etc/mysql", "/var/lib/mysql"]
-
-# Define working directory.
-WORKDIR /data
+VOLUME ["/etc/mysql", "/var/lib/mysql"]
 
 ADD . /app
+
+# Define working directory.
+WORKDIR /app
 
 RUN chmod +x /app/bin/*
 
@@ -35,6 +40,4 @@ RUN chmod +x /app/bin/*
 CMD ["/app/bin/boot"]
 
 # Expose ports.
-EXPOSE 3306
-EXPOSE 4444
-EXPOSE 4567
+EXPOSE 3306 4444 4567 4568

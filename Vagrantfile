@@ -10,8 +10,8 @@ CONFIG = 'config.rb'
 $num_instances = 1
 $enable_serial_logging = false
 $vb_gui = false
-$vb_memory = 2048
-$vb_cpus = 2
+$vb_memory = 1024
+$vb_cpus = 1
 
 # Attempt to apply the deprecated environment variable NUM_INSTANCES to
 # $num_instances while allowing config.rb to override it
@@ -22,12 +22,12 @@ end
 require_relative CONFIG if File.exist?(CONFIG)
 
 Vagrant.configure('2') do |config|
-  config.vm.box = 'coreos-alpha'
+  config.vm.box = 'coreos-beta'
   config.vm.box_version = '>= 308.0.1'
-  config.vm.box_url = 'http://storage.core-os.net/coreos/amd64-usr/alpha/coreos_production_vagrant.json'
+  config.vm.box_url = 'http://storage.core-os.net/coreos/amd64-usr/beta/coreos_production_vagrant.json'
 
   config.vm.provider :vmware_fusion do |_, override|
-    override.vm.box_url = 'http://storage.core-os.net/coreos/amd64-usr/alpha/coreos_production_vagrant_vmware_fusion.json'
+    override.vm.box_url = 'http://storage.core-os.net/coreos/amd64-usr/beta/coreos_production_vagrant_vmware_fusion.json'
   end
 
   # plugin conflict

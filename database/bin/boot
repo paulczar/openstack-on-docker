@@ -17,13 +17,13 @@ export ETCD_TTL=${ETCD_TTL:-10}
 
 # initialize data volume
 chown -R mysql:mysql /var/lib/mysql
-if [[ ! -d $VOLUME_HOME/mysql ]]; then
-  echo "=> An empty or uninitialized MariaDB volume is detected in $VOLUME_HOME"
-  echo "=> Installing MariaDB ..."
+if [[ ! -d /var/lib/mysql/mysql ]]; then
+  echo "=> An empty or uninitialized database is detected in /var/lib/mysql"
+  echo "=> Creating database..."
   mysql_install_db > /dev/null 2>&1
   echo "=> Done!"
 else
-  echo "=> Using an existing volume of MariaDB"
+  echo "=> Using an existing database"
 fi
 
 # wait for etcd to be available
@@ -39,10 +39,15 @@ function etcd_set_default {
   etcdctl --no-sync -C $ETCD mk $ETCD_PATH/$1 $2 >/dev/null 2>&1 || true
 }
 
+function etcd_make_directory {
+  etcdctl --no-sync -C $ETCD setdir $ETCD_PATH/$1 >/dev/null 2>&1 || true
+}
+
 MYSQL_USER=${MYSQL_USER:-openstack}
 MYSQL_PASS=${MYSQL_PASS:-openstack}
 REP_USER=${REP_USER:-replicator}
 REP_PASS=${REP_PASS:-replicator}
+CLUSTER=${CLUSTER:-galera}
 
 PORT=${PORT:-3306}
 PROTO=${PROTO:-tcp}
@@ -50,12 +55,10 @@ PROTO=${PROTO:-tcp}
 etcd_set_default engine mysql
 etcd_set_default adminUser ${MYSQL_USER}
 etcd_set_default adminPass ${MYSQL_PASS}
-if [[ ! -z $CLUSTER ]]; then
-  etcd_set_default cluster ${CLUSTER}
-  etcd_set_default repUser ${REP_USER}
-  etcd_set_default repPass ${REP_PASS}
-fi
-
+etcd_set_default cluster/name ${CLUSTER}
+etcd_set_default repUser ${REP_USER}
+etcd_set_default repPass ${REP_PASS}
+etcd_make_directory cluster/hosts
 
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do
@@ -63,19 +66,26 @@ until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   sleep $(($ETCD_TTL/2))  # sleep for half the TTL
 done
 
+CLUSTER_MEMBERS=$(etcdctl --no-sync -C $ETCD ls $ETCD_PATH/cluster/hosts | awk -F/ '{print $6}' | xargs | sed 's/ /,/')
+
 # run the service in the background
 #service mysql start
-if [[ -z $CLUSTER ]]; then
-  mysqld_safe &
-else
-  if [[ $MEMBER == 1 ]]; then
-    mysqld_safe --wsrep-new-cluster &
-  else
-    PRIMARY_HOST=`etcdctl -C $ETCD get /openstack/database/host`
-    PRIMARY_PORT=`etcdctl -C $ETCD get /openstack/database/port`
 
-    mysqld_safe --wsrep_cluster_address=gcomm://$HOST:$PORT &
-  fi
+WSREP_OPTIONS="--wsrep_node_address=$HOST --skip-syslog --verbose"
+#WSREP_OPTIONS="--verbose --skip-syslog"
+
+# start mysql in order to set up passwords and then kill it again
+
+mysqld_safe --skip-syslog --verbose &
+sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+/app/bin/reload
+mysqladmin shutdown
+
+
+if [[ -z $CLUSTER_MEMBERS ]]; then
+  mysqld_safe --wsrep-new-cluster $WSREP_OPTIONS &
+else
+  mysqld_safe --wsrep_cluster_address=gcomm://$CLUSTER_MEMBERS $WSREP_OPTIONS &
 fi
 
 SERVICE_PID=$!
@@ -98,7 +108,9 @@ CONFD_PID=$!
 sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
 
 # perform a one-time reload to populate database entries
-/usr/local/bin/reload
+# give it a good sleep then...
+sleep 10 
+/app/bin/reload
 
 echo openstack-database running...
 
@@ -114,6 +126,7 @@ if [[ ! -z $PUBLISH ]]; then
   while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
     etcdctl --no-sync -C $ETCD set $ETCD_PATH/host $HOST --ttl $ETCD_TTL >/dev/null
     etcdctl --no-sync -C $ETCD set $ETCD_PATH/port $PORT --ttl $ETCD_TTL >/dev/null
+    etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/hosts/$HOST:4567 1 --ttl $ETCD_TTL >/dev/null
     sleep $(($ETCD_TTL/2)) # sleep for half the TTL
   done
 

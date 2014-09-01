@@ -1,15 +1,14 @@
 [Unit]
-Description=openstack-database-data
+Description=openstack-database-1-data
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 ExecStartPre=/usr/bin/docker pull dockenstack/base
-ExecStart=/bin/sh -c "docker inspect openstack-database-data >/dev/null 2>&1 || docker run --name openstack-database-data -v /var/lib/mysql dockenstack/base true"
+ExecStart=/bin/sh -c "docker inspect openstack-database-1-data >/dev/null 2>&1 || docker run --name openstack-database-1-data -v /var/lib/mysql dockenstack/base true"
 
 [Install]
 WantedBy=multi-user.target
 
-#[X-Fleet]
-#X-ConditionMachineBootID=CHANGEME
-
+[X-Fleet]
+X-Conflicts=openstack-database-*-data.service
