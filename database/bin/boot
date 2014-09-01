@@ -80,14 +80,17 @@ CLUSTER_MEMBERS=$(etcdctl --no-sync -C $ETCD ls $ETCD_PATH/cluster/galeraEndpoin
 WSREP_OPTIONS="--wsrep_node_address=$HOST --skip-syslog --verbose"
 #WSREP_OPTIONS="--verbose --skip-syslog"
 
-# start mysql in order to set up passwords and then kill it again
+echo starting mysql in order to set up passwords
 
 mysqld_safe --skip-syslog --verbose &
-sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+sleep 20
+while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
 /app/bin/reload
+
+echo stopping mysql after setting up passwords
 mysqladmin shutdown
 
-
+echo Starting MySQL for reals
 if [[ -z $CLUSTER_MEMBERS ]]; then
   mysqld_safe --wsrep-new-cluster $WSREP_OPTIONS &
 else
@@ -111,7 +114,8 @@ confd -node $ETCD -config-file /app/confd.toml &
 CONFD_PID=$!
 
 # wait for the service to become available
-sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+sleep 20
+while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
 
 # perform a one-time reload to populate database entries
 # give it a good sleep then...

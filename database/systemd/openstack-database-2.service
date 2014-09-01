@@ -2,6 +2,8 @@
 Description=openstack-database-2
 Requires=openstack-database-2-data.service
 After=openstack-database-2-data.service
+Requires=openstack-database-1.service
+After=openstack-database-1.service
 
 [Service]
 EnvironmentFile=/etc/environment
@@ -12,3 +14,4 @@ ExecStop=/usr/bin/docker stop openstack-database-2
 
 [X-Fleet]
 X-ConditionMachineOf=openstack-database-2-data.service
+X-Conflicts=openstack-database-?.service

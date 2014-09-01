@@ -1,12 +1,14 @@
 [Unit]
 Description=openstack-database-garbd
+Requires=openstack-database-1.service
+After=openstack-database-1.service
 
 [Service]
 EnvironmentFile=/etc/environment
 TimeoutStartSec=20m
-#ExecStartPre=/usr/bin/docker pull dockenstack/database:galera
+ExecStartPre=/usr/bin/docker pull dockenstack/database:galera
 ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database-garbd --rm -p 3306:3306 -p 4444:4444 -p 4567:4567 -p 4568:4568 -e PUBLISH=4567 -e HOST=$COREOS_PRIVATE_IPV4 -e CLUSTER=openstack dockenstack/database:galera /app/bin/garbd"
 ExecStop=/usr/bin/docker stop openstack-database-garbd
 
 [X-Fleet]
-X-Conflicts=openstack-database-*-data.service
+X-Conflicts=openstack-database-?.service

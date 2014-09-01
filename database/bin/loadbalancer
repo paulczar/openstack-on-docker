@@ -44,11 +44,7 @@ until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   sleep $(($ETCD_TTL/2))  # sleep for half the TTL
 done
 
-haproxy -f /etc/haproxy/haproxy.cfg &
-
-SERVICE_PID=$!
-
-echo $SERVICE_PID > /app/haproxy.pid
+service haproxy start
 
 # smart shutdown on SIGINT and SIGTERM
 function on_exit() {

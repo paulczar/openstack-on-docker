@@ -1,23 +1,60 @@
-# Openstack on Docker
+Openstack on Docker
+=============
 
-# About
+About
+====
 
 This project attempts to start the various openstack components inside docker containers running on CoreOS
 
-* Currently working : Keystone, Glance
+* Support Services
+* * MySQL ( using Percona and Galera Replication )
+* * RabbitMQ ( not yet! )
+
+* Openstack Services
+* * Keystone
+* * Glance
 
 _currently unable to save glance images as public_
 
-# Using
+Using
+====
+
+## Start Vagrant based 3 node CoreOS cluster:
 
 ```
 $ git clone https://github.com/paulczar/openstack-on-docker.git
 $ vagrant up
-$ vagrant ssh
+$ vagrant ssh core-01
 $ fleetctl load share/*/systemd/*
+```
+
+## Start Database
+
+### Single node Database
+
+```
 $ fleetctl start openstack-database-data
-$ fleetctl start openstack-glance-data
 $ fleetctl start openstack-database
+```
+
+### 2 node Database
+
+Galera Replication, XtraBackup SST, Arbitor, Load Balancer
+
+```
+$ fleetctl start openstack-database-garbd
+$ fleetctl start openstack-database-1-data
+$ fleetctl start openstack-database-2-data
+$ fleetctl start openstack-database-1
+$ fleetctl start openstack-database-2
+$ fleetctl start openstack-database-loadbalancer
+```
+
+
+## Start Openstack Services
+
+```
+$ fleetctl start openstack-glance-data
 $ fleetctl start openstack-keystone
 $ fleetctl start openstack-glance
 $ fleetctl list-units
