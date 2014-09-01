@@ -11,4 +11,4 @@ ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database-garbd --rm -
 ExecStop=/usr/bin/docker stop openstack-database-garbd
 
 [X-Fleet]
-X-Conflicts=openstack-database-?.service
+X-Conflicts=openstack-database-*-data.service

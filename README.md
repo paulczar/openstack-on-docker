@@ -4,7 +4,9 @@ Openstack on Docker
 About
 ====
 
-This project attempts to start the various openstack components inside docker containers running on CoreOS
+This project attempts to start the various openstack components inside docker containers running on CoreOS.
+
+All settable config variables are stored in etcd under the `/openstack` namespace.   `confd` is used to create templates based on these.
 
 * Support Services
 * * MySQL ( using Percona and Galera Replication )
@@ -32,9 +34,11 @@ $ fleetctl load share/*/systemd/*
 
 ### Single node Database
 
+If you really want to do just a single database,  edit `database/systemd/openstack-database-1.service` and remove `-e CLUSTER=openstack` from the command, then you can start it with the following:
+
 ```
-$ fleetctl start openstack-database-data
-$ fleetctl start openstack-database
+$ fleetctl start openstack-database-1-data
+$ fleetctl start openstack-database-1
 ```
 
 ### 2 node Database
