@@ -15,7 +15,7 @@ wsrep_cluster_name="{{ .openstack_database_cluster_name }}"
 wsrep_cluster_address="gcomm://"
 
 # Galera Synchronization Congifuration
-wsrep_sst_auth={{ .openstack_database_repUser }}:{{ .openstack_database_repPass }}
+wsrep_sst_auth={{ .openstack_database_credentials_repUser }}:{{ .openstack_database_credentials_repPass }}
 wsrep_certify_nonPK=1
 wsrep_convert_LOCK_to_trx=0
 wsrep_auto_increment_control=1
