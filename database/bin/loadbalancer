@@ -48,7 +48,7 @@ until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   sleep $(($ETCD_TTL/2))  # sleep for half the TTL
 done
 
-haproxy -f /etc/haproxy/haproxy.cfg &
+haproxy -f /etc/haproxy/haproxy.cfg -V &
 
 SERVICE_PID=$!
 

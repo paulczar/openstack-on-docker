@@ -1,5 +1,15 @@
 #!/bin/bash
 
-haproxy -f /etc/haproxy/haproxy.cfg -sf $(cat /app/haproxy.pid) &
+haproxy -f /etc/haproxy/haproxy.cfg -D -V -sf $(cat /app/haproxy.pid)
 
-echo $! > /app/haproxy.pid
+PID=$!
+
+sleep 2
+
+echo $PID > /app/haproxy.pid
+
+
+
+
+
+haproxy -f /etc/haproxy/haproxy.cfg -p /app/haproxy.pid -D -sf /app/haproxy.pid

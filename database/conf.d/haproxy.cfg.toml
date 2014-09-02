@@ -9,4 +9,4 @@ keys = [
   "/openstack/database/cluster/mysqlNodes"
 ]
 check_cmd = "/app/bin/check {{ .src }}"
-reload_cmd = "service haproxy reload"
+reload_cmd = "/app/bin/reload_haproxy"
