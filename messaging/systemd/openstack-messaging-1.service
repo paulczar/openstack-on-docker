@@ -1,0 +1,12 @@
+[Unit]
+Description=openstack-messaging-1
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=20m
+#ExecStartPre=/usr/bin/docker pull dockenstack/messaging:latest
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-messaging-1 --rm -p 4369:4369 -p 25672:25672 -p 5672:5672 -p 15672:15672 -e PUBLISH=5672 -e HOST=$COREOS_PRIVATE_IPV4 -e DEBUG=1 -e CLUSTER=openstack dockenstack/messaging:latest"
+ExecStop=/usr/bin/docker stop openstack-messaging-1
+
+[X-Fleet]
+X-Conflicts=openstack-messaging-*.service

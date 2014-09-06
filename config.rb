@@ -5,7 +5,7 @@
 # after the equals sign..
 
 # Size of the CoreOS cluster created by Vagrant
-$num_instances=3
+$num_instances=1
 
 # Log the serial consoles of CoreOS VMs to log/
 # Enable by setting value to true, disable with false
@@ -22,8 +22,8 @@ $expose_docker_tcp=4243
 
 # Setting for VirtualBox VMs
 #$vb_gui = false
-#$vb_memory = 512
-#$vb_cpus = 1
+$vb_memory = 2048
+$vb_cpus = 2
 
 # enable port forwarding of etcd
 $expose_etcd_tcp=4001

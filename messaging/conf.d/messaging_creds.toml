@@ -1,0 +1,11 @@
+[template]
+src   = "messaging_creds"
+dest  = "/app/bin/messaging_creds"
+owner = "root"
+group = "root"
+mode  = "0755"
+keys = [
+  "/openstack/messaging/credentials",
+]
+check_cmd = "/app/bin/check {{ .src }}"
+reload_cmd = "/app/bin/reload"
