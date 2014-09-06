@@ -22,7 +22,7 @@ $expose_docker_tcp=4243
 
 # Setting for VirtualBox VMs
 #$vb_gui = false
-$vb_memory = 2048
+$vb_memory = 4000
 $vb_cpus = 2
 
 # enable port forwarding of etcd
