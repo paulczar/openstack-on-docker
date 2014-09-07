@@ -1,14 +1,12 @@
 [Unit]
 Description=openstack-glance
-Requires=openstack-keystone.service
-After=openstack-keystone.service
 Requires=openstack-glance-data.service
 After=openstack-glance-data.service
 
 [Service]
 EnvironmentFile=/etc/environment
 TimeoutStartSec=20m
-#ExecStartPre=/usr/bin/docker pull dockenstack/glance
-ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-glance --rm -p 9292:9292 -e PUBLISH=9292 \
-  --volumes-from openstack-glance-data -e HOST=$COREOS_PRIVATE_IPV4 dockenstack/glance"
+#ExecStartPre=/usr/bin/docker pull dockenstack/glance:latest
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-glance --rm -p 9292:9292 -p 9191:9191 -e PUBLISH=9292 \
+  --volumes-from openstack-glance-data -e HOST=$COREOS_PRIVATE_IPV4 dockenstack/glance:latest"
 ExecStop=/usr/bin/docker stop dockenstack-glance

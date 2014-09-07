@@ -36,6 +36,11 @@ MYSQL_PASS=${MYSQL_PASS:-glance}
 etcd_set_default databaseUser ${MYSQL_USER}
 etcd_set_default databasePass ${MYSQL_PASS}
 
+until etcdctl -C $ETCD get /openstack/database/host; do
+  echo "Wating for Database host to register with etcd"
+  sleep 5
+done
+
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   echo "database: waiting for confd to write initial templates..."

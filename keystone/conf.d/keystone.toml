@@ -7,8 +7,8 @@ mode  = "0644"
 keys = [
   "/openstack/keystone",
   "/openstack/database",
-  "/openstack/messaging/cluster/endpoints"
-  "/openstack/messaging/credentials"
+  "/openstack/messaging/cluster/endpoints",
+  "/openstack/messaging/credentials",
 ]
 check_cmd = "/app/bin/check {{ .src }}"
 reload_cmd = "kill -1 `cat /app/keystone.pid`"

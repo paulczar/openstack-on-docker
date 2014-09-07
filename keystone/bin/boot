@@ -52,6 +52,11 @@ etcd_set_default adminTenant ${ADMIN_TENANT}
 etcd_set_default adminRole ${ADMIN_ROLE}
 etcd_set_default adminEmail ${ADMIN_EMAIL}
 
+until etcdctl -C $ETCD get /openstack/database/host; do
+  echo "Wating for Database host to register with etcd"
+  sleep 5
+done
+
 # wait for confd to run once and install initial templates
 until confd -onetime -node $ETCD -config-file /app/confd.toml; do
   echo "database: waiting for confd to write initial templates..."
@@ -64,7 +69,7 @@ done
 # for some reason PBR didn't install correctly
  pip install pbr --upgrade
 
-# run the service in the background
+# run the services in the background
 keystone-all -v &
 
 SERVICE_PID=$!

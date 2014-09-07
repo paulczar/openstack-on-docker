@@ -1,5 +1,5 @@
 [Unit]
-Description=openstack-database-data
+Description=openstack-glance-data
 
 [Service]
 Type=oneshot

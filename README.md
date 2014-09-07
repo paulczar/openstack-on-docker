@@ -10,7 +10,7 @@ All settable config variables are stored in etcd under the `/openstack` namespac
 
 * Support Services
 * * MySQL ( using Percona and Galera Replication )
-* * RabbitMQ ( not yet! )
+* * RabbitMQ ( not clustered ... yet )
 
 * Openstack Services
 * * Keystone
@@ -18,32 +18,62 @@ All settable config variables are stored in etcd under the `/openstack` namespac
 
 _currently unable to save glance images as public_
 
-Using
-====
+Download
+=======
+
+```
+$ git clone https://github.com/paulczar/openstack-on-docker.git
+$ cd openstack-on-docker
+```
+
+Single Node system
+============
+
+edit `config.rb` and set `$num_instances=1` and `$vb_memory = 4000` and then bring the VM up and login to it:
+
+```
+$ vagrant up
+$ vagrant ssh core-01
+```
+
+Load up the systemd units:
+
+```
+$ fleetctl load share/database/openstack-database-1*
+$ fleetctl load share/database/openstack-database-loadbalancer
+$ fleetctl load share/messaging/openstack-messaging-1
+$ fleetctl load share/keystone/*
+$ fleetctl load share/glance/*
+```
+
+Start the database and messaging:
+
+```
+$ fleetctl start openstack-database-1-data
+$ fleetctl start openstack-database-1
+$ fleetctl start openstack-messaging-1
+$ watch -n 1 fleetctl list-units
+```
+
+Watch the systems come online with fleet.  Once they are then bring up the next set:
+
+```
+$ fleetctl start openstack-glance-data
+$ fleetctl start openstack-database-loadbalancer
+$ fleetctl start openstack-keystone
+$ fleetctl start openstack-glance
+```
 
 ## Start Vagrant based 3 node CoreOS cluster:
 
 ```
-$ git clone https://github.com/paulczar/openstack-on-docker.git
-$ vagrant up
 $ vagrant ssh core-01
 $ fleetctl load share/*/systemd/*
 ```
 
 ## Start Database
 
-### Single node Database
-
-If you really want to do just a single database,  edit `database/systemd/openstack-database-1.service` and remove `-e CLUSTER=openstack` from the command, then you can start it with the following:
-
-```
-$ fleetctl start openstack-database-1-data
-$ fleetctl start openstack-database-1
-```
-
-### Database Cluster
-
-Galera Replication, XtraBackup SST, Arbitor, Load Balancer
+Galera Replication, XtraBackup SST, Arbitor, Load Balancer:
 
 ```
 $ fleetctl start openstack-database-1-data
