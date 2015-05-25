@@ -1,0 +1,19 @@
+[Unit]
+Description=Openstack database server
+Requires=openstack-database-data@%i.service
+After=openstack-database-data@%i.service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=20m
+ExecStartPre=-/usr/bin/docker rm -f openstack-database-%i
+ExecStartPre=-/bin/sh -c "docker pull 127.0.0.1:5555/dockenstack/database && docker tag -f 127.0.0.1:5555/dockenstack/database dockenstack/database"
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-database-%i --rm -p 3306:3306 \
+  -p 4444:4444 -p 4567:4567 -p 4568:4568 -e PUBLISH=3306 -e HOST=$COREOS_PRIVATE_IPV4 \
+  -e CLUSTER=openstack --dns=$COREOS_PRIVATE_IPV4 \
+  -e SERVICE_3306_NAME=database-mysql \
+  --volumes-from openstack-database-data-%i dockenstack/database:latest"
+ExecStop=/usr/bin/docker stop openstack-database-%i
+
+[X-Fleet]
+X-ConditionMachineOf=openstack-database-data@%i.service

@@ -1,0 +1,18 @@
+[Unit]
+Description=Container Monitoring Agent
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill cadvisor
+ExecStartPre=-/usr/bin/docker rm cadvisor
+ExecStartPre=-/bin/sh -c "docker load < /home/core/share/registry/cadvisor.tgz || \
+  docker pull google/cadvisor:latest && docker save google/cadvisor:latest > /home/core/share/registry/cadvisor.tgz"
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/usr/bin/docker run -rm --name cadvisor --volume=/:/rootfs:ro --volume=/var/run:/var/run:rw --volume=/sys:/sys:ro --volume=/var/lib/docker/:/var/lib/docker:ro --publish=8080:8080 google/cadvisor:latest
+ExecStop=/usr/bin/docker stop cadvisor
+
+[X-Fleet]
+Global=true

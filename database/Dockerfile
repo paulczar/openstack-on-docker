@@ -1,33 +1,29 @@
-# This file creates a container that runs Database (Percona) for Openstack on Docker
+# This file creates a container that runs Database (Percona) with Galera Replication.
 #
 # Author: Paul Czarkowski
 # Date: 08/16/2014
 
 FROM dockenstack/base
-MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
 RUN \
-  apt-get update && \
-  apt-get -yqq install lsb-release && \
-  apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A && \
+  locale-gen en_US.UTF-8 && \
+    apt-key adv --keyserver keys.gnupg.net --recv-keys 1C4CBDCDCD2EFD2A || \
+    apt-key adv --keyserver hkp://keys.gnupg.net:80 --recv-keys 1C4CBDCDCD2EFD2A
+
+RUN \
   echo "deb http://repo.percona.com/apt `lsb_release -cs` main" > /etc/apt/sources.list.d/percona.list && \
   echo "deb-src http://repo.percona.com/apt `lsb_release -cs` main" >> /etc/apt/sources.list.d/percona.list && \
   ln -fs /bin/true /usr/bin/chfn && \
   apt-get update && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y percona-xtradb-cluster-client-5.6 percona-xtradb-cluster-server-5.6  percona-xtrabackup rsync percona-xtradb-cluster-garbd-3.x haproxy && \
-  sed -i 's/^\(bind-address\s.*\)/# \1/' /etc/mysql/my.cnf
+  DEBIAN_FRONTEND=noninteractive apt-get install -y percona-xtradb-cluster-client-5.6 \
+  percona-xtradb-cluster-server-5.6 percona-xtrabackup percona-xtradb-cluster-garbd-3.x && \
+  sed -i 's/^\(bind-address\s.*\)/# \1/' /etc/mysql/my.cnf && \
+  rm -rf /var/lib/mysql/* && \
+  rm -rf /var/log/mysql/*
 
-#RUN \
-#  echo "mysqld_safe &" > /tmp/config && \
-#  echo "sleep 5" >> /tmp/config && \
-#  echo "mysql -e 'GRANT ALL PRIVILEGES ON *.* TO \"root\"@\"%\";'" >> /tmp/config && \
-#  bash /tmp/config && \
-#  rm -f /tmp/config
-
-RUN rm -rf /var/lib/mysql/*
 
 # Define mountable directories.
-VOLUME ["/etc/mysql", "/var/lib/mysql"]
+VOLUME ["/var/lib/mysql", "/var/log/mysql"]
 
 ADD . /app
 

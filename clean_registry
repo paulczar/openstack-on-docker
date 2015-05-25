@@ -1,0 +1,6 @@
+#!/bin/sh
+
+rm -rf ./registry/images
+rm -rf ./registry/repositories
+rm -rf ./registry/docker
+rm -f ./registry/*.tgz

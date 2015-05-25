@@ -1,27 +1,27 @@
-# Creates openstack common base image
+# Creates openstack glance image
 #
 # Author: Paul Czarkowski
-# Date: 08/19/2014
 
 FROM dockenstack/base
-MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
-RUN git clone --depth 1 -b stable/icehouse https://github.com/openstack/glance.git /opt/openstack/glance
+ENV VERSION=stable/kilo
 
-RUN cd /opt/openstack/glance && python setup.py install
+RUN \
+  git clone --depth 1 -b $VERSION https://github.com/openstack/glance.git /app/glance && \
+  cd /app/glance && \
+  pip install -r /app/glance/requirements.txt && \
+  python setup.py install && \
+  mkdir -p /etc/glance && \
+  mkdir -p /var/lib/glance/images && \
+  mkdir -p /var/log/glance && \
+  pip install python-glanceclient
 
-# I don't even...
-RUN pip install -r /opt/openstack/glance/requirements.txt
+EXPOSE 9191 9292
 
-RUN pip install python-glanceclient
+VOLUME ["/var/lib/glance", "/var/log/glance"]
 
-RUN mkdir -p /etc/glance && mkdir -p /var/lib/glance/images && mkdir -p /var/log/glance
+CMD ["/app/bin/boot"]
 
 ADD . /app
 
 RUN chmod +x /app/bin/*
-
-EXPOSE 9191
-EXPOSE 9292
-
-CMD ["/app/bin/boot"]

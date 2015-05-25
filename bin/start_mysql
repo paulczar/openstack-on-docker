@@ -1,3 +1,0 @@
-#!/bin/sh
-
-MYSQL_ID=$(docker run -d -name openstack-mysql -p 127.0.0.1:3306:3306 -v $PWD/etc/openstack:/opt/openstack/etc:ro openstack/mysql)

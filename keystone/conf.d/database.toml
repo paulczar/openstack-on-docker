@@ -6,9 +6,6 @@ group = "root"
 mode  = "0755"
 keys = [
   "/openstack/keystone",
-  "/openstack/database/host",
-  "/openstack/database/port",
-  "/openstack/database/credentials",
 ]
 check_cmd = "/app/bin/check {{ .src }}"
 reload_cmd = "/app/bin/database"

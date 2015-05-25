@@ -1,0 +1,10 @@
+[Unit]
+Description=pull service for dockenstack %i image
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/docker pull 127.0.0.1:5555/dockenstack/%i
+
+[Install]
+WantedBy=multi-user.target

@@ -6,4 +6,4 @@ group = "root"
 mode  = "0644"
 keys = []
 check_cmd = "/usr/sbin/mysqld --help > /dev/null"
-reload_cmd = "ps axu | grep '/usr/sbin/mysqld' | grep -v grep | awk '{ print $2 }'"
+#reload_cmd = "ps axu | grep '/usr/sbin/mysqld' | grep -v grep | awk '{ print $2 }'"

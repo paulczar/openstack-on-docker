@@ -1,0 +1,20 @@
+[Unit]
+Description=SkyDNS Service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill skydns
+ExecStartPre=-/usr/bin/docker rm skydns
+ExecStartPre=-/bin/sh -c "docker load < /home/core/share/registry/skydns.tgz || \
+  docker pull skynetservices/skydns:latest && docker save skynetservices/skydns:latest > /home/core/share/registry/skydns.tgz"
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name skydns -e SKYDNS_DOMAIN=openstack.local \
+  --net=host -e ETCD_MACHINES=http://${COREOS_PRIVATE_IPV4}:4001 -e SKYDNS_ADDR=${COREOS_PRIVATE_IPV4}:53 \
+  skynetservices/skydns:latest"
+ExecStop=/usr/bin/docker stop skydns
+
+[X-Fleet]
+Global=true

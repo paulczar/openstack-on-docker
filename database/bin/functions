@@ -1,0 +1,61 @@
+#!/bin/bash
+
+function etcd_set_default {
+  etcdctl --no-sync -C $ETCD mk $ETCD_PATH/$1 $2 >/dev/null 2>&1 || true
+}
+
+function etcd_make_directory {
+  etcdctl --no-sync -C $ETCD setdir $ETCD_PATH/$1 >/dev/null 2>&1 || true
+}
+
+function on_exit() {
+    kill -TERM $SERVICE_PID
+    wait $SERVICE_PID 2>/dev/null
+    exit 0
+}
+
+function publish_to_etcd() {
+  etcdctl $ETCD_OPTIONS set $ETCD_PATH/repl_active/$HOST 1 --ttl $ETCD_TTL >/dev/null
+}
+
+
+function configure_etcd() {
+  # wait for etcd to be available
+  until etcdctl --no-sync -C $ETCD ls >/dev/null 2>&1; do
+    echo "echo ==> waiting for etcd at $ETCD..."
+    sleep $(($ETCD_TTL/2))  # sleep for half the TTL
+  done
+  # wait until etcd has discarded potentially stale values
+  #sleep $(($ETCD_TTL+1))
+}
+
+function init_database() {
+  chown -R mysql:mysql /var/lib/mysql
+  if [[ ! -d /var/lib/mysql/mysql ]]; then
+    echo "==> An empty or uninitialized database is detected in /var/lib/mysql"
+    echo "-----> Creating database..."
+    mysql_install_db > /dev/null 2>&1
+    echo "-----> Done!"
+  else
+    echo "-----> Using an existing database"
+  fi
+  echo "==> starting mysql in order to set up passwords"
+  mysqld_safe --skip-syslog --verbose --skip-networking &
+  echo "-----> sleeping for a few seconds, then testing if DB is up"
+  sleep 5
+  until mysql -e 'show status' > /dev/null; do sleep 1; done
+  /app/bin/database_creds
+  echo "==> stopping mysql after setting up passwords"
+  mysqladmin shutdown
+}
+
+function cluster_members() {
+  CLUSTER_MEMBERS=
+  LIST=
+  for key in $(etcdctl --no-sync -C $ETCD ls /services/percona_3306); do
+    value=$(etcdctl --no-sync -C $ETCD get $key)
+    mysql -h ${value/:/ -P } 2>&1 | grep 'Access denied' > /dev/null \
+      && LIST+="${value%:*},"
+  done
+  CLUSTER_MEMBERS=${LIST%,}
+}

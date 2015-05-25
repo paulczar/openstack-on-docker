@@ -1,0 +1,20 @@
+[Unit]
+Description=Logspout logging service
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill logspout
+ExecStartPre=-/usr/bin/docker rm logspout
+ExecStartPre=-/bin/sh -c "docker load < /home/core/share/registry/logspout.tgz || \
+  docker pull gliderlabs/logspout:latest && docker save gliderlabs/logspout:latest > /home/core/share/registry/logspout.tgz"
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name logspout \
+  -v /var/run/docker.sock:/tmp/docker.sock:ro --publish=8081:8000 \
+  gliderlabs/logspout:latest syslog://$COREOS_PRIVATE_IPV4:514 -h %H"
+ExecStop=/usr/bin/docker stop logspout
+
+[X-Fleet]
+Global=true

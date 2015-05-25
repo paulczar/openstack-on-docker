@@ -1,9 +1,0 @@
-#!/bin/sh
-
-docker kill openstack-mysql
-docker kill openstack-keystone
-docker kill openstack-glance
-
-docker rm openstack-mysql
-docker rm openstack-keystone
-docker rm openstack-glance

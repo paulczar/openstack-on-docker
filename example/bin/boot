@@ -1,0 +1,70 @@
+#!/bin/bash
+#
+# This script is designed to be run inside the container
+#
+
+# fail hard and fast even on pipelines
+set -eo pipefail
+
+# set debug based on envvar
+[[ $DEBUG ]] && set -x
+
+DIR=$(dirname $0)
+
+# functions
+. $DIR/functions
+
+
+# Environment variables that should be passed in via `docker run` command.
+
+# Defaults for your app:
+export APP_NAME=${APP_NAME:-"example"}
+export PUBLISH=${PUBLISH:-8080}
+export PORT=${PORT:-8080}
+export PROTO=${PROTO:-tcp}
+export SERVICES_EXAMPLE_TEXT=${SERVICES_EXAMPLE_TEXT:-"father"}
+
+if [[ -n $ETCD_HOST ]]; then
+  echo "==> ETCD_HOST set.  starting ${APP_NAME} etcd support."
+  export ETCD_HOST=${ETCD_HOST:-$HOST}
+  export ETCD_PORT=${ETCD_PORT:-4001}
+  export ETCD="$ETCD_HOST:$ETCD_PORT"
+  export ETCD_PATH=${ETCD_PATH:-"/services/$APP_NAME"}
+  export ETCD_TTL=${ETCD_TTL:-10}
+  export ETCD_OPTIONS="--no-sync -C $ETCD"
+  export CONFD_OPTIONS="-node $ETCD -config-file /app/confd_etcd.toml"
+  export SLEEP_TIME=$(($ETCD_TTL/2))
+  configure_etcd
+  mv /app/conf.d/optional/service-confd.toml /app/conf.d/service-confd.toml
+  # App specific
+  etcd_set_default text $SERVICES_EXAMPLE_TEXT
+else
+  echo "==> $HOST not set.  starting ${APP_NAME} without etcd support."
+  export CONFD_OPTIONS="-config-file /app/confd_env.toml"
+  export SLEEP_TIME=10
+  # App specific equiv to etcd /services/example/text
+fi
+
+# make service directories based on service templates
+for service in $(ls /app/templates/service/); do
+  if [[ ${service} == "confd" && -z ${ETCD_HOST} ]]; then
+    echo "skipping confd service"
+  else
+    mkdir -p /etc/service/$service
+  fi
+done
+
+# wait for confd to run once and install initial templates
+until confd -onetime $CONFD_OPTIONS; do
+  echo "echo ==> ${APP_NAME}: waiting for confd to write initial templates..."
+  [[ -n $ETCD_HOST ]] && sleep $SLEEP_TIME  # sleep for half the TTL
+done
+
+echo Starting ${APP_NAME}
+
+# smart shutdown on SIGINT and SIGTERM
+trap on_exit INT TERM
+
+exec /app/bin/my_init
+
+exit 1

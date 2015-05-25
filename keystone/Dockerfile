@@ -4,16 +4,16 @@
 # Date: 08/11/2013
 
 FROM dockenstack/base
-MAINTAINER Paul Czarkowski "paul@paulcz.net"
 
-RUN git clone --depth 1 -b stable/icehouse https://github.com/openstack/keystone.git /opt/openstack/keystone
+ENV VERSION=stable/kilo
 
-RUN cd /opt/openstack/keystone && python setup.py install
-
-# I don't even...
-RUN pip install -r /opt/openstack/keystone/requirements.txt
-
-RUN mkdir -p /etc/keystone && chmod 0700 /etc/keystone
+RUN \
+  git clone --depth 1 -b $VERSION https://github.com/openstack/keystone.git /app/keystone && \
+  cd /app/keystone && \
+  pip install -r /app/keystone/requirements.txt && \
+  python setup.py install && \
+  mkdir -p /etc/keystone && \
+  chmod 0700 /etc/keystone
 
 EXPOSE 5000 35357
 

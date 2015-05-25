@@ -4,8 +4,5 @@ dest  = "/etc/keystone/keystone-paste.ini"
 owner = "root"
 group = "root"
 mode  = "0644"
-keys = [
-  "/openstack/keystone",
-  "/openstack/database",
-]
+keys = []
 check_cmd = "/app/bin/check {{ .src }}"

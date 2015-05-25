@@ -1,0 +1,21 @@
+[Unit]
+Description=Registrator to etcd Service Discovery
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill registrator-etcd
+ExecStartPre=-/usr/bin/docker rm registrator-etcd
+ExecStartPre=-/bin/sh -c "docker load < /home/core/share/registry/registrator.tgz || \
+  docker pull gliderlabs/registrator:latest && docker save gliderlabs/registrator:latest > /home/core/share/registry/registrator.tgz"
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name registrator-etcd \
+  -v /var/run/docker.sock:/tmp/docker.sock:ro -h %H gliderlabs/registrator:latest \
+  -ttl 30 -ttl-refresh 20 -ip ${COREOS_PRIVATE_IPV4} \
+  etcd://${COREOS_PRIVATE_IPV4}:4001/services"
+ExecStop=/usr/bin/docker stop registrator-etcd
+
+[X-Fleet]
+Global=true

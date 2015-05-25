@@ -4,145 +4,103 @@
 #
 
 # fail hard and fast even on pipelines
-set -eo pipefail
+# set -eo pipefail
 
 # set debug based on envvar
 [[ $DEBUG ]] && set -x
 
-# configure etcd
-export ETCD_PORT=${ETCD_PORT:-4001}
-export ETCD="$HOST:$ETCD_PORT"
-export ETCD_PATH=${ETCD_PATH:-/openstack/database}
-export ETCD_TTL=${ETCD_TTL:-10}
+DIR=$(dirname $0)
 
-# initialize data volume
-chown -R mysql:mysql /var/lib/mysql
-if [[ ! -d /var/lib/mysql/mysql ]]; then
-  echo "=> An empty or uninitialized database is detected in /var/lib/mysql"
-  echo "=> Creating database..."
-  mysql_install_db > /dev/null 2>&1
-  echo "=> Done!"
+# functions
+. $DIR/functions
+
+
+# Environment variables that should be passed in via `docker run` command.
+
+# Defaults for your app:
+export APP_NAME=${APP_NAME:-"percona"}
+export MYSQL_USER=${MYSQL_USER:-admin}
+export MYSQL_PASS=${MYSQL_PASS:-admin}
+export REP_USER=${REP_USER:-replicator}
+export REP_PASS=${REP_PASS:-replicator}
+export ETCD_HOST=${ETCD_HOST:-$HOST}
+export CLUSTER=${CLUSTER:-percona}
+export BOOT_SEQ=${BOOT_SEQ:-1}
+
+export IP=$(grep $HOSTNAME /etc/hosts | awk '{ print $1 }')
+
+export HOST=${HOST:-$IP}
+
+if [[ -n $ETCD_HOST ]]; then
+  echo "==> HOST or ETCD_HOST set.  starting ${APP_NAME} etcd support."
+  export ETCD_PORT=${ETCD_PORT:-4001}
+  export ETCD="$ETCD_HOST:$ETCD_PORT"
+  export ETCD_PATH=${ETCD_PATH:-"/openstack/database"}
+  export ETCD_TTL=${ETCD_TTL:-30}
+  export ETCD_OPTIONS="--no-sync -C $ETCD"
+  export CONFD_OPTIONS="-node $ETCD -config-file /app/confd_etcd.toml"
+  configure_etcd
+  # App specific
+  etcd_make_directory repl_active
+  etcd_set_default credentials/adminUser ${MYSQL_USER}
+  etcd_set_default credentials/adminPass ${MYSQL_PASS}
+  etcd_set_default credentials/repUser ${REP_USER}
+  etcd_set_default credentials/repPass ${REP_PASS}
+  etcd_set_default config/cluster_name ${CLUSTER}
+
+  mv /app/conf.d/optional/service-confd.toml /app/conf.d/service-confd.toml
 else
-  echo "=> Using an existing database"
+  echo "==> ETCD_HOST not set.  starting ${APP_NAME} without etcd support."
+  export CONFD_OPTIONS="-config-file /app/confd_env.toml"
+  # App specific equiv to etcd /services/example/text
 fi
 
-# wait for etcd to be available
-until etcdctl --no-sync -C $ETCD ls >/dev/null 2>&1; do
-  echo "waiting for etcd at $ETCD..."
-  sleep $(($ETCD_TTL/2))  # sleep for half the TTL
-done
-
-# wait until etcd has discarded potentially stale values
-sleep $(($ETCD_TTL+1))
-
-function etcd_set_default {
-  etcdctl --no-sync -C $ETCD mk $ETCD_PATH/$1 $2 >/dev/null 2>&1 || true
-}
-
-function etcd_make_directory {
-  etcdctl --no-sync -C $ETCD setdir $ETCD_PATH/$1 >/dev/null 2>&1 || true
-}
-
-MYSQL_USER=${MYSQL_USER:-openstack}
-MYSQL_PASS=${MYSQL_PASS:-openstack}
-REP_USER=${REP_USER:-replicator}
-REP_PASS=${REP_PASS:-replicator}
-
-PORT=${PUBLISH:-3306}
-PROTO=${PROTO:-tcp}
-
-etcd_set_default engine percona
-etcd_set_default credentials/adminUser ${MYSQL_USER}
-etcd_set_default credentials/adminPass ${MYSQL_PASS}
-etcd_set_default credentials/repUser ${REP_USER}
-etcd_set_default credentials/repPass ${REP_PASS}
-etcd_set_default host $HOST
-etcd_set_default port $PORT
-
-if [[ ! -z $CLUSTER ]]; then
-  etcd_set_default cluster/name ${CLUSTER}
-  etcd_make_directory cluster/mysqlNodes
-  etcd_make_directory cluster/galeraEndpoints
-fi
+# make service directories based on service templates
+for service in $(ls /app/templates/service/); do mkdir -p /etc/service/$service; done
 
 # wait for confd to run once and install initial templates
-until confd -onetime -node $ETCD -config-file /app/confd.toml; do
-  echo "database: waiting for confd to write initial templates..."
-  sleep $(($ETCD_TTL/2))  # sleep for half the TTL
+until confd -onetime $CONFD_OPTIONS; do
+  echo "echo ==> ${APP_NAME}: waiting for confd to write initial templates..."
+  [[ -n $ETCD_HOST ]] && sleep $(($ETCD_TTL/2))  # sleep for half the TTL
 done
 
-CLUSTER_MEMBERS=$(etcdctl --no-sync -C $ETCD ls $ETCD_PATH/cluster/galeraEndpoints | awk -F/ '{print $6}' | xargs | sed 's/ /,/')
+ln -s /dev/stdout /var/log/mysql/error.log
 
-# run the service in the background
-#service mysql start
+init_database
 
-WSREP_OPTIONS="--wsrep_node_address=$HOST --skip-syslog --verbose"
-#WSREP_OPTIONS="--verbose --skip-syslog"
+cluster_members
 
-echo starting mysql in order to set up passwords
-
-mysqld_safe --skip-syslog --verbose &
-echo sleeping for 20 seconds, then testing if DB is up.
-sleep 20
-while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do sleep 1; done
-/app/bin/database_creds
-
-echo stopping mysql after setting up passwords
-mysqladmin shutdown
-
-echo Starting MySQL for reals
 if [[ -z $CLUSTER_MEMBERS ]]; then
-  mysqld_safe --wsrep-new-cluster $WSREP_OPTIONS &
+  # Perform Election
+  echo "==> Performing Election..."
+  if etcdctl $ETCD_OPTIONS mk --ttl 600 $ETCD_PATH/election $HOST >/dev/null 2>&1; then
+    echo "-----> Hurruh I win!"
+    export PERCONA_ARGS="--wsrep_cluster_address=gcomm:// $WSREP_OPTIONS"
+  else
+    echo -n "-----> I lost election.  Waiting for leader."
+    LEADER=$(etcdctl --no-sync -C $ETCD get $ETCD_PATH/election)
+    echo "-----> joining cluster led by $LEADER"
+    export PERCONA_ARGS="--wsrep_cluster_address=gcomm://$LEADER $WSREP_OPTIONS"
+  fi
 else
-  mysqld_safe --wsrep_cluster_address=gcomm://$CLUSTER_MEMBERS $WSREP_OPTIONS &
+  echo "-----> joining cluster with known members: $CLUSTER_MEMBERS"
+  export PERCONA_ARGS="--wsrep_cluster_address=gcomm://$CLUSTER_MEMBERS $WSREP_OPTIONS"
 fi
 
-SERVICE_PID=$!
+# one final rewrite of config files
+until confd -onetime $CONFD_OPTIONS; do
+  echo "echo ==> ${APP_NAME}: waiting for confd to update templates..."
+  [[ -n $ETCD_HOST ]] && sleep $(($ETCD_TTL/2))  # sleep for half the TTL
+done
 
-echo $SERVICE_PID > /app/database.pid
+echo Starting ${APP_NAME}
 
 # smart shutdown on SIGINT and SIGTERM
-function on_exit() {
-    kill -TERM $SERVICE_PID
-    wait $SERVICE_PID 2>/dev/null
-    exit 0
-}
 trap on_exit INT TERM
 
-# spawn confd in the background to update services based on etcd changes
-confd -node $ETCD -config-file /app/confd.toml &
-CONFD_PID=$!
+exec /app/bin/my_init
 
-# wait for the service to become available
-echo sleeping for 20 seconds, then testing if DB is up.
-sleep 20
-while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do sleep 1; done
+exit 1
 
-echo openstack-database running...
 
-# publish the service to etcd using the injected HOST and PORT
-if [[ ! -z $PUBLISH ]]; then
-
-  set +e
-
-  # wait for the service to become available on PUBLISH port
-  sleep 1 && while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do sleep 1; done
-
-  # while the port is listening, publish to etcd
-  while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
-    if [[ -z $CLUSTER ]]; then
-      etcdctl --no-sync -C $ETCD set $ETCD_PATH/host $HOST --ttl $ETCD_TTL >/dev/null
-      etcdctl --no-sync -C $ETCD set $ETCD_PATH/port $PUBLISH --ttl $ETCD_TTL >/dev/null
-    else
-      etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/galeraEndpoints/$HOSTNAME $HOST:4567 --ttl $ETCD_TTL >/dev/null
-      etcdctl --no-sync -C $ETCD set $ETCD_PATH/cluster/mysqlNodes/$HOSTNAME $HOST:$PUBLISH --ttl $ETCD_TTL >/dev/null
-    fi
-    sleep $(($ETCD_TTL/2)) # sleep for half the TTL
-  done
-
-  # if the loop quits, something went wrong
-  exit 1
-
-fi
-
-wait
+# --wsrep_cluster_address=gcomm://10.1.49.5

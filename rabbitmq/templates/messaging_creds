@@ -1,0 +1,15 @@
+#!/bin/bash
+#
+# Grant various credentials to mysql before joining cluster
+#
+
+rabbitmqctl add_user {{ getv "/openstack/messaging/credentials/adminUser" }} {{ getv "/openstack/messaging/credentials/adminPass" }}
+rabbitmqctl add_user {{ getv "/openstack/messaging/credentials/openstackUser" }} {{ getv "/openstack/messaging/credentials/openstackPass" }}
+rabbitmqctl set_user_tags {{ getv "/openstack/messaging/credentials/adminUser" }} administrator
+
+{{ range ls "/openstack/messaging/vhosts" }}
+    rabbitmqctl add_vhost {{.}}
+    rabbitmqctl set_permissions -p {{.}} {{ getv "/openstack/messaging/credentials/openstackUser" }} "*" ".*" ".*"
+{{end}}
+
+exit 0

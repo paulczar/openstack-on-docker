@@ -8,5 +8,6 @@ keys = [
   "/openstack/keystone",
   "/openstack/glance",
   "/openstack/database",
+  "/openstack/messaging",
 ]
 check_cmd = "/app/bin/check {{ .src }}"

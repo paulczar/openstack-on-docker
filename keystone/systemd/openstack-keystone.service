@@ -1,9 +1,0 @@
-[Unit]
-Description=openstack-keystone
-
-[Service]
-EnvironmentFile=/etc/environment
-TimeoutStartSec=20m
-#ExecStartPre=/usr/bin/docker pull dockenstack/keystone:latest
-ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-keystone --rm -p 5000:5000 -p 35357:35357 -e PUBLISH=5000 -e HOST=$COREOS_PRIVATE_IPV4 dockenstack/keystone:latest"
-ExecStop=/usr/bin/docker stop openstack-keystone

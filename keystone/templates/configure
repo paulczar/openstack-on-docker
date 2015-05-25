@@ -1,4 +1,4 @@
-export OS_SERVICE_TOKEN={{ .openstack_keystone_adminToken }}
+export OS_SERVICE_TOKEN={{ getv "/openstack/keystone/adminToken" }}
 
 export OS_SERVICE_ENDPOINT=http://127.0.0.1:35357/v2.0
 
@@ -9,19 +9,19 @@ echo 'Keystone: configuring pki'
 keystone-manage pki_setup --keystone-user root --keystone-group root
 
 echo 'Keystone: Create Tenant - Admin'
-keystone tenant-create --name={{ .openstack_keystone_adminTenant }} --description="Admin Tenant"
+keystone tenant-create --name={{ getv "/openstack/keystone/adminTenant" }} --description="Admin Tenant"
 
 echo 'Keystone: Create Tenant - Service'
 keystone tenant-create --name=service --description="Service Tenant"
 
 echo 'Keystone: Create User - Admin'
-keystone user-create --name={{ .openstack_keystone_adminUser }} --pass={{ .openstack_keystone_adminPass }} --email={{ .openstack_keystone_adminEmail }}
+keystone user-create --name={{ getv "/openstack/keystone/adminUser" }} --pass={{ getv "/openstack/keystone/adminPass" }} --email={{ getv "/openstack/keystone/adminEmail" }}
 
 echo 'Keystone: Create Role - Admin'
-keystone role-create --name={{ .openstack_keystone_adminRole }}
+keystone role-create --name={{ getv "/openstack/keystone/adminRole" }}
 
 echo 'Keystone: Add Admin user to Admin Role in Admin tenant'
-keystone user-role-add --user={{ .openstack_keystone_adminUser }} --tenant={{ .openstack_keystone_adminTenant }} --role={{ .openstack_keystone_adminRole }}
+keystone user-role-add --user={{ getv "/openstack/keystone/adminUser" }} --tenant={{ getv "/openstack/keystone/adminTenant" }} --role={{ getv "/openstack/keystone/adminRole" }}
 
 echo 'Keystone: Create identity service'
 keystone service-list | grep keystone || keystone service-create --name=keystone --type=identity \
@@ -31,8 +31,8 @@ export SERVICE_ID=`keystone service-list | grep keystone | head -1 | awk {'print
 
 keystone endpoint-list | grep $SERVICE_ID || keystone endpoint-create \
   --service-id=$SERVICE_ID \
-  --publicurl=http://${HOST}:5000/v2.0 \
-  --internalurl=http://${HOST}:5000/v2.0 \
-  --adminurl=http://${HOST}:35357/v2.0
+  --publicurl=http://keystone-api.openstack.local:5000/v2.0 \
+  --internalurl=http://keystone-api.openstack.local:5000/v2.0 \
+  --adminurl=http://keystone-api.openstack.local:35357/v2.0
 
 exit 0

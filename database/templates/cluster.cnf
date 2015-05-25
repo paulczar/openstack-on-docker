@@ -11,13 +11,13 @@ wsrep_provider=/usr/lib/libgalera_smm.so
 wsrep_slave_threads=2
 
 # Galera Cluster Configuration
-wsrep_cluster_name="{{ .openstack_database_cluster_name }}"
-wsrep_cluster_address="gcomm://"
+wsrep_node_address={{ getenv "HOST" }}
+wsrep_cluster_name={{ getv "/openstack/database/config/cluster_name" }}
 
 # Galera Synchronization Congifuration
-wsrep_sst_auth={{ .openstack_database_credentials_repUser }}:{{ .openstack_database_credentials_repPass }}
+wsrep_sst_auth={{ getv "/openstack/database/credentials/repUser" }}:{{ getv "/openstack/database/credentials/repPass" }}
 wsrep_certify_nonPK=1
 wsrep_convert_LOCK_to_trx=0
 wsrep_auto_increment_control=1
 wsrep_causal_reads=0
-wsrep_sst_method=xtrabackup
+wsrep_sst_method=xtrabackup-v2

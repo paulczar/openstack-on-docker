@@ -3,17 +3,12 @@
 # This script is designed to be run inside the container
 #
 
-export USER={{ .openstack_database_credentials_adminUser }}
-export PASS={{ .openstack_database_credentials_adminPass }}
-export HOST={{ .openstack_database_host }}
-export PORT={{ .openstack_database_port }}
-
-until netcat -z $HOST $PORT; do
+until mysql -e 'select now();' > /dev/null; do
   echo "Wating for Database on $HOST to listen on $PORT"
   sleep 5
 done
 
-mysql -u ${USER} -p${PASS} -h ${HOST} -P ${PORT} -e 'CREATE DATABASE glance;' || true
-mysql -u ${USER} -p${PASS} -h ${HOST} -P ${PORT} -e 'GRANT ALL PRIVILEGES ON glance.* TO "{{ .openstack_glance_databaseUser }}"@"%" IDENTIFIED BY "{{ .openstack_glance_databasePass }}";'
+mysql -e 'CREATE DATABASE glance;' || true
+mysql -e 'GRANT ALL PRIVILEGES ON glance.* TO "{{ getv "/openstack/glance/databaseUser" }}"@"%" IDENTIFIED BY "{{ getv "/openstack/glance/databasePass" }}";'
 
 exit 0

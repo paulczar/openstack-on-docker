@@ -1,0 +1,16 @@
+[Unit]
+Description=Openstack keystone service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=20m
+ExecStartPre=-/usr/bin/docker rm -f openstack-keystone-%i
+ExecStartPre=-/bin/sh -c "docker pull 127.0.0.1:5555/dockenstack/keystone && docker tag -f 127.0.0.1:5555/dockenstack/keystone dockenstack/keystone"
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-keystone-%i --rm -p 5000:5000 -p 35357:35357 \
+ -e PUBLISH=5000 -e HOST=$COREOS_PRIVATE_IPV4 --dns=$COREOS_PRIVATE_IPV4 \
+ -e SERVICE_5000_NAME=keystone-api -e SERVICE_35357_NAME=keystone-admin \
+ dockenstack/keystone:latest"
+ExecStop=/usr/bin/docker stop openstack-keystone-%i
+
+[X-Fleet]
+X-Conflicts=openstack-keystone@*.service

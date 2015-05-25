@@ -1,5 +1,0 @@
-#!/bin/sh
-
-KEYSTONE_ID=$(docker run -d -name openstack-glance -link openstack-mysql:db -link openstack-keystone:keystone \
-    -p 127.0.0.1:9191:9191 -p 127.0.0.1:9292:9292 -v $PWD/etc/openstack:/opt/openstack/etc:ro \
-    openstack/glance)

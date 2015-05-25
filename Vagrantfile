@@ -4,35 +4,15 @@
 require 'fileutils'
 
 CLOUD_CONFIG_PATH = './user-data'
-CONFIG = 'config.rb'
 
-# Defaults for config options defined in CONFIG
-$num_instances = 1
-$enable_serial_logging = false
-$vb_gui = false
-$vb_memory = 1024
-$vb_cpus = 1
-
-# Attempt to apply the deprecated environment variable NUM_INSTANCES to
-# $num_instances while allowing config.rb to override it
-if ENV['NUM_INSTANCES'].to_i > 0 && ENV['NUM_INSTANCES']
-  $num_instances = ENV['NUM_INSTANCES'].to_i
-end
-
-require_relative CONFIG if File.exist?(CONFIG)
-
-if ARGV.include? 'up'
-  puts 'rewriting userdata'
-  write_user_data($num_instances) 
-end
+require_relative 'factorish.rb'
 
 Vagrant.configure('2') do |config|
-  config.vm.box = 'coreos-beta'
-  config.vm.box_version = '>= 308.0.1'
-  config.vm.box_url = 'http://storage.core-os.net/coreos/amd64-usr/beta/coreos_production_vagrant.json'
-
+  config.vm.box = "coreos-#{$coreos_channel}"
+  config.vm.box_version = ">= #{$min_coreos_version}"
+  config.vm.box_url = "http://storage.core-os.net/coreos/amd64-usr/#{$coreos_channel}/coreos_production_vagrant.json"
   config.vm.provider :vmware_fusion do |_, override|
-    override.vm.box_url = 'http://storage.core-os.net/coreos/amd64-usr/beta/coreos_production_vagrant_vmware_fusion.json'
+    override.vm.box_url = "http://storage.core-os.net/coreos/amd64-usr/#{$coreos_channel}/coreos_production_vagrant_vmware_fusion.json"
   end
 
   # plugin conflict
@@ -62,10 +42,8 @@ Vagrant.configure('2') do |config|
         end
       end
 
-      if $expose_docker_tcp
-        c.vm.network 'forwarded_port', guest: 4243, host: $expose_docker_tcp, auto_correct: true
-        c.vm.network 'forwarded_port', guest: 4001, host: $expose_etcd_tcp, auto_correct: true
-      end
+      c.vm.network 'forwarded_port', guest: $expose_docker_tcp, host: $expose_docker_tcp, auto_correct: true if $expose_docker_tcp
+      c.vm.network 'forwarded_port', guest: $expose_etcd_tcp, host: $expose_etcd_tcp, auto_correct: true if $expose_etcd_tcp
 
       c.vm.provider :virtualbox do |vb|
         vb.gui = $vb_gui
@@ -76,20 +54,15 @@ Vagrant.configure('2') do |config|
       ip = "172.17.8.#{i + 100}"
       c.vm.network :private_network, ip: ip
 
-      # Uncomment below to enable NFS for sharing the host machine into the coreos-vagrant VM.
       c.vm.synced_folder '.', '/home/core/share', id: 'core', nfs: true, mount_options: ['nolock,vers=3,udp']
 
       if File.exist?(CLOUD_CONFIG_PATH)
         c.vm.provision :file, source: "#{CLOUD_CONFIG_PATH}", destination: '/tmp/vagrantfile-user-data'
         c.vm.provision :shell, inline: 'mv /tmp/vagrantfile-user-data /var/lib/coreos-vagrant/', privileged: true
-        #c.vm.provision :shell, inline: 'fleetctl load share/*/systemd/*'
-        #c.vm.provision :shell, inline: 'docker run --rm -v /tmp:/target jpetazzo/nsenter'
-        #c.vm.provision :shell, inline: 'docker pull dockenstack/base'
-        #c.vm.provision :shell, inline: 'fleetctl start openstack-database-data'
-        #c.vm.provision :shell, inline: 'fleetctl start openstack-glance-data'
-        #c.vm.provision :shell, inline: 'sleep 10 && fleetctl start openstack-database'
-        #c.vm.provision :shell, inline: 'fleetctl list-units'
       end
+
+      c.vm.provision :shell, inline: 'echo use systemctl and journalctl to view progress of startup'
+
     end
   end
 end

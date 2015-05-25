@@ -1,5 +1,6 @@
-[confd]
-confdir  = "/app"
+backend = "etcd" # etcd
+confdir = "/app"
 interval = 5
-prefix   = "/"
-quiet = true
+#prefix = "/"
+# quiet = true
+watch = true

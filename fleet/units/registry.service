@@ -1,0 +1,19 @@
+[Unit]
+Description=Docker Registry 2
+After=docker.service
+Requires=docker.service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=0
+ExecStartPre=-/usr/bin/docker kill registry
+ExecStartPre=-/usr/bin/docker rm registry
+ExecStartPre=-/bin/sh -c "docker load < /home/core/share/registry/registry.tgz || \
+  docker pull registry:2.0.1 && docker save registry:2.0.1 > /home/core/share/registry/registry.tgz"
+ExecStartPre=/usr/bin/sleep 5
+ExecStart=/bin/sh -c "/usr/bin/docker run --rm --name registry \
+  -v /home/core/share/registry:/tmp/registry-dev -p 5555:5000 registry:2.0.1"
+ExecStop=/usr/bin/docker stop registry
+
+[X-Fleet]
+Global=true

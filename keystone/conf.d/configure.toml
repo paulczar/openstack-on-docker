@@ -7,6 +7,8 @@ mode  = "0755"
 keys = [
   "/openstack/keystone",
   "/openstack/database",
+  "/services/rabbitmq-5672",
+  "/services/database-mysql",
 ]
 check_cmd = "/app/bin/check {{ .src }}"
 reload_cmd = "/app/bin/configure"

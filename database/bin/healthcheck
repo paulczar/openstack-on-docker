@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# fail hard and fast even on pipelines
+#set -eo pipefail
+
+# set debug based on envvar
+[[ $DEBUG ]] && set -x
+
+DIR=$(dirname $0)
+
+. $DIR/functions
+
+# smart shutdown on SIGINT and SIGTERM
+trap on_exit INT TERM
+
+sleep 600
+
+# wait for the service to become available
+while [[ -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do sleep 1; done
+
+# health checks
+set +e
+# while the port is listening we're okay
+while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".3306\" && \$1 ~ \"tcp.?\"") ]] ; do
+  #etcdctl $ETCD_OPTIONS mk --ttl 600 $ETCD_PATH/election $HOST >/dev/null 2>&1;
+  sleep $(($ETCD_TTL/2))
+done
+# if the loop quits, something went wrong
+kill `cat /var/run/supervisord.pid`
+exit 1
+
+wait

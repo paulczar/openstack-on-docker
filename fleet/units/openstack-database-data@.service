@@ -1,0 +1,13 @@
+[Unit]
+Description=openstack-database-data-%i
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/bin/sh -c "docker pull 127.0.0.1:5555/dockenstack/database && docker tag -f 127.0.0.1:5555/dockenstack/database dockenstack/database"
+ExecStart=/bin/sh -c "docker inspect openstack-database-data-%i >/dev/null 2>&1 || docker run --name openstack-database-data-%i -v /var/lib/mysql dockenstack/database:latest true"
+ExecStop=/usr/bin/docker stop openstack-database-data-%i
+
+[Install]
+WantedBy=multi-user.target
+

@@ -3,18 +3,12 @@
 # This script is designed to be run inside the container
 #
 
-export USER={{ .openstack_database_credentials_adminUser }}
-export PASS={{ .openstack_database_credentials_adminPass }}
-export HOST={{ .openstack_database_host }}
-export PORT={{ .openstack_database_port }}
-
-until netcat -z $HOST $PORT; do
+until mysql -e 'SELECT NOW();'; do
   echo "Wating for Database on $HOST to listen on $PORT"
   sleep 5
 done
 
-mysql -u ${USER} -p${PASS} -h ${HOST} -P ${PORT} -e 'CREATE DATABASE keystone;' || true
-mysql -u ${USER} -p${PASS} -h ${HOST} -P ${PORT} -e 'GRANT ALL PRIVILEGES ON keystone.* TO "{{ .openstack_keystone_databaseUser }}"@"%" IDENTIFIED BY "{{ .openstack_keystone_databasePass }}";'
-
+mysql -e 'CREATE DATABASE keystone;' || true
+mysql -e 'GRANT ALL PRIVILEGES ON keystone.* TO "{{ getv "/openstack/keystone/databaseUser" }}"@"%" IDENTIFIED BY "{{ getv "/openstack/keystone/databasePass" }}";'
 
 exit 0

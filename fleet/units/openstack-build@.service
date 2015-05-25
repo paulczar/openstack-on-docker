@@ -1,0 +1,13 @@
+[Unit]
+Description=build service for dockenstack %i image
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/bin/sh -c "docker pull 127.0.0.1:5555/dockenstack/base && docker tag -f 127.0.0.1:5555/dockenstack/base dockenstack/base"
+ExecStart=/usr/bin/docker build -t dockenstack/%i /home/core/share/%i
+ExecStartPost=/usr/bin/sleep 5
+ExecStartPost=/usr/bin/docker tag -f dockenstack/%i 127.0.0.1:5555/dockenstack/%i
+ExecStartPost=/usr/bin/docker push 127.0.0.1:5555/dockenstack/%i
+[Install]
+WantedBy=multi-user.target

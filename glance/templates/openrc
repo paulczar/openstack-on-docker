@@ -1,6 +1,6 @@
 #!/bin/sh
 
-export OS_USERNAME={{ .openstack_keystone_adminUser }}
-export OS_PASSWORD={{ .openstack_keystone_adminPass }}
-export OS_TENANT_NAME={{ .openstack_keystone_adminTenant }}
-export OS_AUTH_URL=http://{{ .openstack_keystone_host }}:{{ .openstack_keystone_port }}/v2.0
+export OS_USERNAME={{ getv "/openstack/keystone/adminUser" }}
+export OS_PASSWORD={{ getv "/openstack/keystone/adminPass" }}
+export OS_TENANT_NAME={{ getv "/openstack/keystone/adminTenant" }}
+export OS_AUTH_URL=http://{{ getv "/openstack/keystone/host" }}:{{ getv "/openstack/keystone/port" }}/v2.0

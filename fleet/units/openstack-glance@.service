@@ -1,0 +1,16 @@
+[Unit]
+Description=Openstack glance service
+
+[Service]
+EnvironmentFile=/etc/environment
+TimeoutStartSec=20m
+ExecStartPre=-/usr/bin/docker rm -f openstack-glance-%i
+ExecStartPre=-/bin/sh -c "docker pull 127.0.0.1:5555/dockenstack/glance && docker tag -f 127.0.0.1:5555/dockenstack/glance dockenstack/glance"
+ExecStart=/bin/sh -c "/usr/bin/docker run --name openstack-glance-%i --rm -p 9191:9191 -p 9292:9292 \
+ -e PUBLISH=9292 -e HOST=$COREOS_PRIVATE_IPV4 --dns=$COREOS_PRIVATE_IPV4 \
+ -e SERVICE_9191_NAME=glance-registry -e SERVICE_9292_NAME=glance-api \
+ dockenstack/glance:latest"
+ExecStop=/usr/bin/docker stop openstack-glance-%i
+
+[X-Fleet]
+X-Conflicts=openstack-glance@*.service

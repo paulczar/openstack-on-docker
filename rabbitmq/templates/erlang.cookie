@@ -1,0 +1,1 @@
+{{ getv "/openstack/messaging/cookie" }}

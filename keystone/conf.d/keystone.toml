@@ -6,8 +6,8 @@ group = "root"
 mode  = "0644"
 keys = [
   "/openstack/keystone",
-  "/openstack/database",
-  "/openstack/messaging/cluster/endpoints",
+  "/services/rabbitmq-5672",
+  "/services/database-mysql",
   "/openstack/messaging/credentials",
 ]
 check_cmd = "/app/bin/check {{ .src }}"

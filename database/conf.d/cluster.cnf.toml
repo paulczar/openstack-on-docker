@@ -5,9 +5,9 @@ owner = "root"
 group = "root"
 mode  = "0644"
 keys = [
-  "/openstack/database/cluster/name",
+  "/openstack/database/config/cluster_name",
   "/openstack/database/credentials/repUser",
-  "/openstack/database/credentials/repPass"
+  "/openstack/database/credentials/repPass",
 ]
 check_cmd = "/usr/sbin/mysqld --help > /dev/null"
-reload_cmd = "ps axu | grep '/usr/sbin/mysqld' | grep -v grep | awk '{ print $2 }'"
+#reload_cmd = "ps axu | grep '/usr/sbin/mysqld' | grep -v grep | awk '{ print $2 }'"

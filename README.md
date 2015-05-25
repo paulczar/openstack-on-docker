@@ -1,146 +1,105 @@
 Openstack on Docker
-=============
+===================
 
 About
-====
+-----
 
-This project attempts to start the various openstack components inside docker containers running on CoreOS.
+This is a slowly evolving attempt to run openstack services inside docker containers using the `coreos` ecosystem for scheduling and service discovery.
 
-All settable config variables are stored in etcd under the `/openstack` namespace.   `confd` is used to create templates based on these.
+Currently supports Keystone and Glance.
 
-* Support Services
-* * MySQL ( using Percona and Galera Replication )
-* * RabbitMQ ( not clustered ... yet )
 
-* Openstack Services
-* * Keystone
-* * Glance
+Using:
+------
 
-_currently unable to save glance images as public_
+### Development Environment
 
-Download
-=======
-
-```
-$ git clone https://github.com/paulczar/openstack-on-docker.git
-$ cd openstack-on-docker
-```
-
-Single Node system
-============
-
-edit `config.rb` and set `$num_instances=1` and `$vb_memory = 4000` and then bring the VM up and login to it:
+Start Vagrant and load up the fleet units for Dockenstack.
 
 ```
 $ vagrant up
 $ vagrant ssh core-01
+$ fleetctl submit share/fleet/units/*
 ```
 
-Load up the systemd units:
+Start up our support containers and wait until the registry is running:
 
 ```
-$ fleetctl load share/database/openstack-database-1*
-$ fleetctl load share/database/openstack-database-loadbalancer
-$ fleetctl load share/messaging/openstack-messaging-1
-$ fleetctl load share/keystone/*
-$ fleetctl load share/glance/*
+$ fleetctl start registry registrator-etcd registrator-skydns skydns
+Triggered global unit registry.service start
+Triggered global unit cadvisor.service start
+Triggered global unit registrator.service start
+$ journalctl -f -u registry.service
+-- Logs begin at Sun 2015-05-24 17:52:40 UTC. --
+...
+...
+May 24 17:55:49 core-01 systemd[1]: Started Docker Registry 2.0.
+May 24 17:55:49 core-01 sh[1757]: time="2015-05-24T17:55:49.964104241Z" level=info msg="debug server listening localhost:5001"
 ```
 
-Start the database and messaging:
+Build our base image and wait until it finishes building:
 
 ```
-$ fleetctl start openstack-database-1-data
-$ fleetctl start openstack-database-1
-$ fleetctl start openstack-messaging-1
-$ watch -n 1 fleetctl list-units
+$ fleetctl start openstack-build@base.service && \
+  journalctl -f -u openstack-build@base.service
+-- Logs begin at Sun 2015-05-24 17:52:40 UTC. --
+May 24 17:56:24 core-01 systemd[1]: Starting build service for dockenstack base image...
+May 24 17:56:24 core-01 sh[1831]: Sending build context to Docker daemon 3.072 kB
+May 24 17:56:24 core-01 sh[1831]: Sending build context to Docker daemon
+...
+...
+May 24 17:59:46 core-01 docker[6164]: c73d1826dce1: Image already exists
+May 24 17:59:46 core-01 systemd[1]: Started build service for dockenstack base image.
 ```
 
-Watch the systems come online with fleet.  Once they are then bring up the next set:
+Build our images: ( or download them from public registry )
 
 ```
-$ fleetctl start openstack-glance-data
-$ fleetctl start openstack-database-loadbalancer
-$ fleetctl start openstack-keystone
-$ fleetctl start openstack-glance
+$ fleetctl start openstack-build@database.service
+$ fleetctl start openstack-build@rabbitmq.service
+$ fleetctl start openstack-build@keystone.service
+$ fleetctl start openstack-build@glance.service
 ```
 
-## Start Vagrant based 3 node CoreOS cluster:
+Start up our openstack services:
 
 ```
-$ vagrant ssh core-01
-$ fleetctl load share/*/systemd/*
+$ fleetctl start openstack-database-data@1.service
+$ fleetctl start openstack-database@1.service
+$ fleetctl start openstack-rabbitmq@1.service
+$ fleetctl start openstack-keystone@1.service
+$ fleetctl start openstack-glance@1.service
 ```
 
-## Start Database
-
-Galera Replication, XtraBackup SST, Arbitor, Load Balancer:
+Test it out:
 
 ```
-$ fleetctl start openstack-database-1-data
-$ fleetctl start openstack-database-2-data
-$ fleetctl start openstack-database-3-data
-$ fleetctl start openstack-database-1
+$ docker exec -ti openstack-glance-1 bash
+$ source /app/openrc
+$ keystone catalog
+$ wget -O /tmp/cirros.img http://download.cirros-cloud.net/0.3.4/cirros-0.3.4-x86_64-disk.img
+$ glance image-create --name "cirros" --disk-format qcow2 \
+  --container-format bare --is-public True --progress < /tmp/cirros.img
 ```
 
-This will kick off the first node in the db cluster.   Wait until it is `active` by running `watch fleetctl list-units` before proceeding:
+Author(s)
+======
 
-```
-$ fleetctl start openstack-database-2
-$ fleetctl start openstack-database-3
-$ fleetctl start openstack-database-loadbalancer
-```
+Paul Czarkowski (paul@paulcz.net)
 
-_if you don't want to run 3 databases you can run `openstack-database-garbd` instead of the third._
+License
+=======
 
-## Start Openstack Services
+Copyright 2015 Paul Czarkowski
 
-```
-$ fleetctl start openstack-glance-data
-$ fleetctl start openstack-keystone
-$ fleetctl start openstack-glance
-$ fleetctl list-units
-$ journalctl -f
-```
-
-```
-$ docker run --rm -e HOST=172.17.8.101 paulczar/openstack-keystone /app/bin/catalog
-Service: identity
-+-------------+----------------------------------+
-|   Property  |              Value               |
-+-------------+----------------------------------+
-|   adminURL  |  http://172.17.8.101:35357/v2.0  |
-|      id     | 00835fb1c20d41d090c0494b18ea282a |
-| internalURL |  http://172.17.8.101:5000/v2.0   |
-|  publicURL  |  http://172.17.8.101:5000/v2.0   |
-|    region   |            regionOne             |
-+-------------+----------------------------------+
-
-```
-
-## Cleanup ##
-
-```
-vagrant destroy -f
-```
-
-# Special Thanks
-
-To the [deis](http://deis.io) project.   I borrowed heavily from the methods they use to create and manage service discovery.
-
-# License
-
-Copyright 2014 Paul Czarkowski
-Copyright 2013 OpDemand LLC
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-http://www.apache.org/licenses/LICENSE-2.0
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
-# Authors
-
-* Paul Czarkowski

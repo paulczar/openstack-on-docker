@@ -1,6 +1,6 @@
-export OS_SERVICE_TOKEN={{ .openstack_keystone_adminToken }}
+export OS_SERVICE_TOKEN={{ getv "/openstack/keystone/adminToken" }}
 
-export OS_SERVICE_ENDPOINT=http://{{ .openstack_keystone_host }}:35357/v2.0
+export OS_SERVICE_ENDPOINT=http://database-mysql.openstack.local:35357/v2.0
 
 echo 'glance: configuring database'
 glance-manage db_sync
@@ -16,8 +16,8 @@ echo 'Glance: Create glance endpoint'
 
 keystone endpoint-list | grep $SERVICE_ID || keystone endpoint-create \
   --service-id=$SERVICE_ID \
-  --publicurl=http://$HOST:9292 \
-  --internalurl=http://$HOST:9292 \
-  --adminurl=http://$HOST:9292
+  --publicurl=http://glance-api.openstack.local:9292 \
+  --internalurl=http://glance-api.openstack.local:9292 \
+  --adminurl=http://glance-api.openstack.local:9292
 
 exit 0

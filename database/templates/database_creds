@@ -1,13 +1,13 @@
 #!/bin/bash
+# written by confd
 #
 # Grant various credentials to mysql before joining cluster
 #
 
 mysql -e 'SET wsrep_on=OFF; GRANT select ON *.* TO "haproxy_check"@"%"'
-mysql -e 'SET wsrep_on=OFF; GRANT ALL ON *.* TO "{{ .openstack_database_credentials_repUser }}"@"%" IDENTIFIED BY "{{ .openstack_database_credentials_repPass }}";'
-mysql -e 'SET wsrep_on=OFF; GRANT ALL ON *.* TO "{{ .openstack_database_credentials_repUser }}"@"localhost" IDENTIFIED BY "{{ .openstack_database_credentials_repPass }}";'
-mysql -e 'SET wsrep_on=OFF; GRANT ALL PRIVILEGES ON *.* TO "{{ .openstack_database_credentials_adminUser }}"@"%" IDENTIFIED BY "{{ .openstack_database_credentials_adminPass }}";'
-mysql -e 'SET wsrep_on=OFF; GRANT SUPER ON *.* TO "{{ .openstack_database_credentials_adminUser }}"@"%" WITH GRANT OPTION;'
-mysql -e 'FLUSH PRIVILEGES;'
+mysql -e 'SET wsrep_on=OFF; GRANT ALL ON *.* TO "{{ getv "/openstack/database/credentials/repUser" }}"@"%" IDENTIFIED BY "{{ getv "/openstack/database/credentials/repPass" }}";'
+mysql -e 'SET wsrep_on=OFF; GRANT ALL ON *.* TO "{{ getv "/openstack/database/credentials/repUser" }}"@"localhost" IDENTIFIED BY "{{ getv "/openstack/database/credentials/repPass" }}";'
+mysql -e 'SET wsrep_on=OFF; GRANT ALL PRIVILEGES ON *.* TO "{{ getv "/openstack/database/credentials/adminUser" }}"@"%" IDENTIFIED BY "{{ getv "/openstack/database/credentials/adminPass" }}";'
+mysql -e 'SET wsrep_on=OFF; GRANT SUPER ON *.* TO "{{ getv "/openstack/database/credentials/adminUser" }}"@"%" WITH GRANT OPTION; FLUSH PRIVILEGES;'
 
 exit 0

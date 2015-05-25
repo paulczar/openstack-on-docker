@@ -52,7 +52,7 @@ etcd_set_default adminTenant ${ADMIN_TENANT}
 etcd_set_default adminRole ${ADMIN_ROLE}
 etcd_set_default adminEmail ${ADMIN_EMAIL}
 
-until etcdctl -C $ETCD get /openstack/database/host; do
+until etcdctl -C $ETCD ls /services/database-mysql; do
   echo "Wating for Database host to register with etcd"
   sleep 5
 done
@@ -67,7 +67,7 @@ done
 /app/bin/database
 
 # for some reason PBR didn't install correctly
- pip install pbr --upgrade
+# pip install pbr --upgrade
 
 # run the services in the background
 keystone-all -v &

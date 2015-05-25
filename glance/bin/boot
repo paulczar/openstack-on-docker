@@ -36,7 +36,7 @@ MYSQL_PASS=${MYSQL_PASS:-glance}
 etcd_set_default databaseUser ${MYSQL_USER}
 etcd_set_default databasePass ${MYSQL_PASS}
 
-until etcdctl -C $ETCD get /openstack/database/host; do
+until etcdctl -C $ETCD ls /services/database-mysql; do
   echo "Wating for Database host to register with etcd"
   sleep 5
 done
@@ -53,19 +53,21 @@ done
 # run the service in the background
 glance-registry -v &
 SERVICE_PID=$!
-echo ${SERVICE_PID} > /app/glance-registry.pid
+echo ${REGISTRY_PID} > /app/glance-registry.pid
 
 # run the service in the background
 glance-api -v &
 
 SERVICE_PID=$!
 
-echo ${SERVICE_PID} > /app/glance-api.pid
+echo ${API_PID} > /app/glance-api.pid
 
 # smart shutdown on SIGINT and SIGTERM
 function on_exit() {
-    kill -TERM $SERVICE_PID
-    wait $SERVICE_PID 2>/dev/null
+    kill $REGISTRY_PID
+    wait $REGISTRY_PID 2>/dev/null
+    kill $API_PID
+    wait $API_PID 2>/dev/null
     exit 0
 }
 trap on_exit INT TERM
@@ -96,13 +98,12 @@ if [[ ! -z $PUBLISH ]]; then
 
   # while the port is listening, publish to etcd
   while [[ ! -z $(netstat -lnt | awk "\$6 == \"LISTEN\" && \$4 ~ \".$PUBLISH\" && \$1 ~ \"$PROTO.?\"") ]] ; do
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/host $HOST --ttl $ETCD_TTL >/dev/null
-    etcdctl --no-sync -C $ETCD set $ETCD_PATH/port $PORT --ttl $ETCD_TTL >/dev/null
     sleep $(($ETCD_TTL/2)) # sleep for half the TTL
   done
 
-  # if the loop quits, something went wrong
-  exit 1
 fi
+
+kill $API_PID
+kill $REGISTRY_PID
 
 wait
