@@ -8,6 +8,10 @@ This is a slowly evolving attempt to run openstack services inside docker contai
 
 Currently supports Keystone and Glance.
 
+Uses `registrator` to register running containers with `etcd` which is used by `skydns` to provide dns via the `.openstack.local` domain.   Also uses `etcd` to host config data in `/openstack` namespace.
+
+Current focus is on getting the base components to work and use the service discovery.
+
 
 Using:
 ------
